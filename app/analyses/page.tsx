@@ -1,10 +1,11 @@
-'use client'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
+import { AnalysesContent } from '@/components/analyses-content'
 
-import Link from 'next/link'
-import { FileText, Search, SlidersHorizontal } from 'lucide-react'
-import { AppShell, PageHeader, StatusBadge } from '@/components/app-shell'
-import { useMemo, useState } from 'react'
+export default async function AnalysesPage() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) redirect('/login')
+  return <AnalysesContent />
+}
 
-const rows = [['Software Engineering Internship','Internship','78%','Eligible','Sep 30','green'],['African Technology Scholarship','Scholarship','92%','Eligible','Oct 04','green'],['Student Innovation Grant','Grant','54%','Needs review','Oct 18','amber'],['Engineering Leadership Fellowship','Fellowship','61%','Needs review','Nov 02','amber']] as const
-
-export default function Analyses() { const [query, setQuery] = useState(''); const filtered = useMemo(() => rows.filter(row => row.join(' ').toLowerCase().includes(query.toLowerCase())), [query]); return <AppShell><main className="mx-auto max-w-7xl px-5 py-9 lg:px-10 lg:py-11"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><PageHeader eyebrow="Your workspace" title="My analyses" description="All the opportunities you&apos;ve reviewed in one place." /><Link href="/analyze" className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">+ Analyze document</Link></div><div className="mt-8 flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-3 size-4 text-slate-400" /><input aria-label="Search opportunities" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search opportunities..." className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></div><button className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600"><SlidersHorizontal className="size-4" />All statuses</button></div><div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><div className="hidden grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.6fr] gap-4 border-b border-slate-100 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:grid"><span>Opportunity</span><span>Type</span><span>Match</span><span>Status</span><span>Deadline</span></div>{filtered.map(([title,type,match,status,deadline,tone]) => <Link href="/analyses/1" key={title} className="grid gap-2 border-b border-slate-100 px-5 py-4 transition last:border-0 hover:bg-slate-50 sm:grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.6fr] sm:items-center sm:gap-4"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-600"><FileText className="size-4" /></span><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-slate-400 sm:hidden">{type} · {deadline}</p></div></div><span className="hidden text-sm text-slate-500 sm:block">{type}</span><span className="text-sm font-bold text-slate-700">{match}</span><span><StatusBadge tone={tone === 'green' ? 'green' : 'amber'}>{status}</StatusBadge></span><span className="hidden text-sm text-slate-500 sm:block">{deadline}</span></Link>)}{filtered.length === 0 && <div className="px-5 py-12 text-center text-sm text-slate-500">No analyses match your search.</div>}</div></main></AppShell> }

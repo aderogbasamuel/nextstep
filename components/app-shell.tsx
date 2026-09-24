@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ArrowRight, FileText, LayoutDashboard, Menu, Plus, Settings, UserRound, X } from 'lucide-react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { authClient } from '@/lib/auth-client'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,6 +18,7 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const router = useRouter()
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`))
 
   return (
@@ -32,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="mt-5 flex items-center gap-3 border-t border-slate-100 pt-5">
           <span className="grid size-9 place-items-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">SA</span>
-          <div><p className="text-sm font-semibold">Samuel A.</p><p className="text-xs text-slate-400">Free plan</p></div>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">Samuel A.</p><p className="text-xs text-slate-400">Free plan</p></div><button onClick={async () => { await authClient.signOut(); router.push('/login'); router.refresh() }} className="text-xs font-semibold text-slate-400 hover:text-slate-900">Sign out</button>
         </div>
       </aside>
       <div className="lg:pl-64">
