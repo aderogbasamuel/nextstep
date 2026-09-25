@@ -1,2 +1,54 @@
-import Link from 'next/link'
-export default function Profile() { return <main className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900 lg:px-12"><div className="mx-auto max-w-3xl"><Link href="/dashboard" className="text-sm text-slate-500">← Dashboard</Link><h1 className="mt-5 text-3xl font-bold">Your profile</h1><p className="mt-2 text-sm text-slate-500">Keep your profile current to improve every match.</p><div className="mt-8 rounded-xl border border-slate-200 bg-white p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-semibold">Profile completeness</p><p className="mt-1 text-xs text-slate-500">Add your skills and experience to unlock better insights.</p></div><span className="text-2xl font-bold text-blue-600">82%</span></div><div className="mt-4 h-2 rounded-full bg-slate-100"><div className="h-full w-[82%] rounded-full bg-blue-600" /></div></div><div className="mt-6 grid gap-6">{[['Personal information','Samuel Aderogba','samuel@example.com'],['Education','Computer Engineering','University of Lagos'],['Skills','JavaScript · React · Git · Node.js','Add more skills'],['Experience','1 year','Add projects and certifications']].map(([title,one,two]) => <section key={title} className="rounded-xl border border-slate-200 bg-white p-6"><div className="flex items-start justify-between"><div><h2 className="font-semibold">{title}</h2><p className="mt-3 text-sm">{one}</p><p className="mt-1 text-sm text-slate-500">{two}</p></div><button className="text-sm font-semibold text-blue-600">Edit</button></div></section>)}</div></div></main>}
+import Link from "next/link";
+export default function Profile() {
+  return (
+    <main className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900 lg:px-12">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/dashboard" className="text-sm text-slate-500">
+          ← Dashboard
+        </Link>
+        <h1 className="mt-5 text-3xl font-bold">Your profile</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Keep your profile current to improve every match.
+        </p>
+        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">Profile completeness</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Add your skills and experience to unlock better insights.
+              </p>
+            </div>
+            <span className="text-2xl font-bold text-blue-600">82%</span>
+          </div>
+          <div className="mt-4 h-2 rounded-full bg-slate-100">
+            <div className="h-full w-[82%] rounded-full bg-blue-600" />
+          </div>
+        </div>
+        <div className="mt-6 grid gap-6">
+          {[
+            ["Personal information", "Samuel Aderogba", "samuel@example.com"],
+            ["Education", "Computer Engineering", "University of Lagos"],
+            ["Skills", "JavaScript · React · Git · Node.js", "Add more skills"],
+            ["Experience", "1 year", "Add projects and certifications"],
+          ].map(([title, one, two]) => (
+            <section
+              key={title}
+              className="rounded-xl border border-slate-200 bg-white p-6"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="font-semibold">{title}</h2>
+                  <p className="mt-3 text-sm">{one}</p>
+                  <p className="mt-1 text-sm text-slate-500">{two}</p>
+                </div>
+                <button className="text-sm font-semibold text-blue-600">
+                  Edit
+                </button>
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}

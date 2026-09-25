@@ -7,5 +7,6 @@ export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect('/login')
   return <DashboardContent name={session.user.name} />
+  // return <DashboardContent name="samuel Aderogba"/>
 }
 
