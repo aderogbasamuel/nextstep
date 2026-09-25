@@ -51,47 +51,47 @@ const rows = [
 
 export function AnalysesContent() {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
-const [query, setQuery] = useState("");
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState("");
-useEffect(() => {
-  async function fetchAnalyses() {
-    try {
-      setLoading(true);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    async function fetchAnalyses() {
+      try {
+        setLoading(true);
 
-      const response = await fetch("/api/analyses");
+        const response = await fetch("/api/analyses");
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch analyses");
+        if (!response.ok) {
+          throw new Error("Failed to fetch analyses");
+        }
+
+        const data = await response.json();
+
+        setAnalyses(data);
+      } catch (error) {
+        console.error(error);
+        setError("Failed to load your analyses.");
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-
-      setAnalyses(data);
-    } catch (error) {
-      console.error(error);
-      setError("Failed to load your analyses.");
-    } finally {
-      setLoading(false);
     }
-  }
 
-  fetchAnalyses();
-}, []);
+    fetchAnalyses();
+  }, []);
   const filtered = useMemo(() => {
-  return analyses.filter((analysis) =>
-    [
-      analysis.title,
-      analysis.type,
-      analysis.match,
-      analysis.status,
-      analysis.deadline,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(query.toLowerCase())
-  );
-}, [analyses, query]);
+    return analyses.filter((analysis) =>
+      [
+        analysis.title,
+        analysis.type,
+        analysis.match,
+        analysis.status,
+        analysis.deadline,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+    );
+  }, [analyses, query]);
   return (
     <AppShell>
       <main className="mx-auto max-w-7xl px-5 py-9 lg:px-10 lg:py-11">
@@ -126,70 +126,61 @@ useEffect(() => {
         </div>
 
         {loading ? (
-  <div className="mt-6 rounded-xl border border-slate-200 bg-white p-10 text-center">
-    <p className="text-sm text-slate-500">
-      Loading your analyses...
-    </p>
-  </div>
-) : error ? (
-  <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-10 text-center">
-    <p className="text-sm text-red-600">
-      {error}
-    </p>
-  </div>
-) : (
-  <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="hidden grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.6fr] gap-4 border-b border-slate-100 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:grid">
-            <span>Opportunity</span>
-            <span>Type</span>
-            <span>Match</span>
-            <span>Status</span>
-            <span>Deadline</span>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-10 text-center">
+            <p className="text-sm text-slate-500">Loading your analyses...</p>
           </div>
-          {filtered.map((analysis) => {
-  const tone =
-    analysis.status === "Eligible"
-      ? "green"
-      : "amber";
+        ) : error ? (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-10 text-center">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        ) : (
+          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="hidden grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.6fr] gap-4 border-b border-slate-100 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:grid">
+              <span>Opportunity</span>
+              <span>Type</span>
+              <span>Match</span>
+              <span>Status</span>
+              <span>Deadline</span>
+            </div>
+            {filtered.map((analysis) => {
+              const tone = analysis.status === "Eligible" ? "green" : "amber";
 
-  return (
-    <Link
-      href={`/analyses/${analysis.id}`}
-      key={analysis.id}
-      className="grid gap-2 border-b border-slate-100 px-5 py-4 transition last:border-0 hover:bg-slate-50 sm:grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.6fr] sm:items-center sm:gap-4"
-    >
-      <div className="flex items-center gap-3">
-        <span className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-600">
-          <FileText className="size-4" />
-        </span>
+              return (
+                <Link
+                  href={`/analyses/${analysis.id}`}
+                  key={analysis.id}
+                  className="grid gap-2 border-b border-slate-100 px-5 py-4 transition last:border-0 hover:bg-slate-50 sm:grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.6fr] sm:items-center sm:gap-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-600">
+                      <FileText className="size-4" />
+                    </span>
 
-        <span className="text-sm font-semibold">
-          {analysis.title}
-        </span>
-      </div>
+                    <span className="text-sm font-semibold">
+                      {analysis.title}
+                    </span>
+                  </div>
 
-      <span className="text-xs text-slate-500">
-        {analysis.type}
-      </span>
+                  <span className="text-xs text-slate-500">
+                    {analysis.type}
+                  </span>
 
-      <span className="text-sm font-bold">
-        {analysis.match}
-        {!analysis.match.includes("%") && "%"}
-      </span>
+                  <span className="text-sm font-bold">
+                    {analysis.match}
+                    {!analysis.match.includes("%") && "%"}
+                  </span>
 
-      <StatusBadge tone={tone}>
-        {analysis.status}
-      </StatusBadge>
+                  <StatusBadge tone={tone}>{analysis.status}</StatusBadge>
 
-      <span className="text-sm text-slate-500">
-        {analysis.deadline}
-      </span>
-    </Link>
-  );
-})}
-        </div>
-)}
-        
+                  <span className="text-sm text-slate-500">
+                    {analysis.deadline}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {filtered.length === 0 && (
           <p className="mt-8 text-center text-sm text-slate-500">
             No analyses match your search.
