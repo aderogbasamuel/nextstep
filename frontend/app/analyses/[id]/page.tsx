@@ -96,7 +96,11 @@ export default async function ResultPage({
   const completedTasks = actionItemsData.filter(
     (task) => task.completed,
   ).length;
+const attentionItems = eligibilityItems.filter(
+  (item) => item.status === "missing" || item.status === "unclear"
+);
 
+const attentionCount = attentionItems.length;
   const totalTasks = actionItemsData.length;
 
   const progress =
@@ -182,18 +186,24 @@ export default async function ResultPage({
               </p>
             </div>
             <div className="mt-8 rounded-lg bg-amber-50 p-4">
-              <div className="flex gap-3">
-                <AlertCircle className="size-5 shrink-0 text-amber-600" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">
-                    2 areas need your attention
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-amber-800">
-                    Review the missing skill and recommendation letter before
-                    applying.
-                  </p>
-                </div>
-              </div>
+              {attentionCount > 0 && (
+  <div className="flex gap-3">
+    <AlertCircle className="size-5 shrink-0 text-amber-600" />
+
+    <div>
+      <p className="text-sm font-semibold text-amber-900">
+        {attentionCount}{" "}
+        {attentionCount === 1 ? "area needs" : "areas need"} your attention
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-amber-800">
+        {attentionItems.some((item) => item.status === "missing")
+          ? "Review the missing requirements before applying."
+          : "Review the requirements marked as unclear before applying."}
+      </p>
+    </div>
+  </div>
+)}
             </div>
           </section>
           <section className="rounded-xl border border-slate-200 bg-white p-6">
