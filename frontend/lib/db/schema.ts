@@ -9,7 +9,28 @@ export const user = pgTable('user', {
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })
+export const profile = pgTable("profile", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
 
+  userId: text("userId")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  university: text("university"),
+  degree: text("degree"),
+  fieldOfStudy: text("fieldOfStudy"),
+  studyLevel: text("studyLevel"),
+  graduationYear: integer("graduationYear"),
+
+  location: text("location"),
+
+  skills: text("skills"),
+  experience: text("experience"),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
   expiresAt: timestamp('expiresAt').notNull(),
@@ -48,12 +69,48 @@ export const verification = pgTable('verification', {
 
 export const analyses = pgTable('analyses', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  userId: text('userId').notNull(),
+
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+
   title: text('title').notNull(),
   type: text('type').notNull(),
-  match: text('match').notNull(),
+
+  organization: text('organization'),
+
+  match: integer('match').notNull(),
   status: text('status').notNull(),
-  deadline: text('deadline').notNull(),
+
+  deadline: timestamp('deadline'),
+
+  summary: text('summary'),
+
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 })
 
+export const eligibility = pgTable('eligibility', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+
+  analysisId: integer('analysisId')
+    .notNull()
+    .references(() => analyses.id, { onDelete: 'cascade' }),
+
+  requirement: text('requirement').notNull(),
+  explanation: text('explanation').notNull(),
+  status: text('status').notNull(),
+})
+
+
+
+export const actionItems = pgTable('action_items', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+
+  analysisId: integer('analysisId')
+    .notNull()
+    .references(() => analyses.id, { onDelete: 'cascade' }),
+
+  title: text('title').notNull(),
+  completed: boolean('completed').notNull().default(false),
+  position: integer('position').notNull(),
+})

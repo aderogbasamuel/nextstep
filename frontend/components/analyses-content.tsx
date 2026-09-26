@@ -166,8 +166,8 @@ export function AnalysesContent() {
                   </span>
 
                   <span className="text-sm font-bold">
-                    {analysis.match}
-                    {!analysis.match.includes("%") && "%"}
+                    {analysis.match}%
+                    
                   </span>
 
                   <StatusBadge tone={tone}>{analysis.status}</StatusBadge>

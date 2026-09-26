@@ -2,7 +2,7 @@
   "name": "my-project",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@12.3.4",
+  "packageManager": "pnpm@12.3.4",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@google/genai": "^2.24.0",
     "@vercel/analytics": "1.6.1",
     "better-auth": "^1.7.5",
     "class-variance-authority": "^0.7.1",
