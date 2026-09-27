@@ -1,3 +1,5 @@
+import "pdf-parse/worker";
+
 import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 
@@ -5,13 +7,17 @@ export async function extractTextFromFile(file: File) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   if (file.type === "application/pdf") {
-    const parser = new PDFParse({ data: buffer });
+    const parser = new PDFParse({
+      data: buffer,
+    });
 
-    const result = await parser.getText();
+    try {
+      const result = await parser.getText();
 
-    await parser.destroy();
-
-    return result.text.trim();
+      return result.text.trim();
+    } finally {
+      await parser.destroy();
+    }
   }
 
   if (
