@@ -12,14 +12,15 @@ import {
   Loader2,
 } from "lucide-react";
 import { DragEvent, useRef, useState } from "react";
-
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 export default function AnalyzePage() {
   const [drag, setDrag] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFile(selectedFile: File | undefined) {
@@ -81,40 +82,49 @@ export default function AnalyzePage() {
       return;
     }
 
+    const { data: session } = await authClient.getSession();
+
+    if (!session?.user) {
+      sessionStorage.setItem(
+        "pendingAnalysis",
+        JSON.stringify({
+          text: text.trim(),
+          fileName: file?.name ?? null,
+        }),
+      );
+
+      router.push("/login");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const formData = new FormData();
-
-      if (file) {
-        formData.append("file", file);
-      }
-
-      if (text.trim()) {
-        formData.append("text", text.trim());
-      }
-
       const response = await fetch("/api/analyze", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    text: text.trim(),
-  }),
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: text.trim(),
+        }),
+      });
 
-const data = await response.json();
+      const data = await response.json();
 
-if (!response.ok) {
-  throw new Error(data.error || "Analysis failed");
-}
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis failed");
+      }
 
-window.location.href = `/analyses/${data.analysisId}`;
-
+      window.location.href = `/analyses/${data.analysisId}`;
     } catch (error) {
       console.error(error);
-      setError("Something went wrong. Please try again.");
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setLoading(false);
     }

@@ -15,24 +15,57 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [pending, setPending] = useState(false);
   const isSignup = mode === "signup";
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPending(true);
-    setError("");
-    const result = isSignup
-      ? await authClient.signUp.email({ name, email, password })
-      : await authClient.signIn.email({ email, password });
-    setPending(false);
+ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  setPending(true);
+  setError("");
+
+  try {
+    if (isSignup) {
+      const result = await authClient.signUp.email({
+        name,
+        email,
+        password,
+      });
+
+      if (result.error) {
+        setError(
+          "We could not create your account. Check your details and try again."
+        );
+        return;
+      }
+
+      router.push("/profile");
+      router.refresh();
+      return;
+    }
+
+    const result = await authClient.signIn.email({
+      email,
+      password,
+    });
+
     if (result.error) {
       setError(
-        "We could not complete that request. Check your details and try again.",
+        "We could not sign you in. Check your email and password and try again."
       );
       return;
     }
-    router.push("/dashboard");
-    router.refresh();
-  }
 
+    const pendingAnalysis = sessionStorage.getItem("pendingAnalysis");
+
+if (pendingAnalysis) {
+  router.push("/analyze?continue=true");
+} else {
+  router.push("/dashboard");
+}
+
+router.refresh();
+  } finally {
+    setPending(false);
+  }
+}
   return (
     <main className="grid min-h-screen place-items-center bg-slate-50 px-5">
       <div className="w-full max-w-md">
