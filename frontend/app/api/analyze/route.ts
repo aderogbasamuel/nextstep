@@ -4,8 +4,15 @@ import { eq } from "drizzle-orm";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { analyses, actionItems, eligibility, profile } from "@/lib/db/schema";
+import {
+  analyses,
+  actionItems,
+  eligibility,
+  profile,
+} from "@/lib/db/schema";
+
 import { analyzeOpportunity } from "@/lib/ai/gemini";
+import { extractTextFromFile } from "@/lib/parser/extract-text";
 
 export async function POST(request: Request) {
   try {
@@ -21,27 +28,46 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Read request
-    const body = await request.json();
+    // 2. Read multipart form data
+    const formData = await request.formData();
 
-    const opportunityText =
-      typeof body.text === "string" ? body.text.trim() : "";
+    const file = formData.get("file");
+    const text = formData.get("text");
 
+    let opportunityText = "";
+
+    // 3. Extract text from uploaded file
+    if (file instanceof File) {
+      opportunityText = await extractTextFromFile(file);
+    }
+
+    // 4. Use pasted text if provided
+    if (typeof text === "string" && text.trim()) {
+      opportunityText = text.trim();
+    }
+
+    // 5. Validate extracted/pasted content
     if (!opportunityText) {
       return NextResponse.json(
-        { error: "Opportunity text is required" },
+        {
+          error:
+            "Please upload a document or provide opportunity details.",
+        },
         { status: 400 }
       );
     }
 
     if (opportunityText.length < 30) {
       return NextResponse.json(
-        { error: "Please provide more information about the opportunity." },
+        {
+          error:
+            "Please provide more information about the opportunity.",
+        },
         { status: 400 }
       );
     }
 
-    // 3. Load user's profile
+    // 6. Load user's profile
     const profileResult = await db
       .select()
       .from(profile)
@@ -60,13 +86,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Send opportunity + profile to Gemini
+    // 7. Send opportunity + profile to Gemini
     const result = await analyzeOpportunity(
       opportunityText,
       userProfile
     );
 
-    // 5. Save analysis
+    // 8. Save analysis
     const [savedAnalysis] = await db
       .insert(analyses)
       .values({
@@ -83,7 +109,7 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    // 6. Save eligibility requirements
+    // 9. Save eligibility requirements
     if (result.eligibility?.length) {
       await db.insert(eligibility).values(
         result.eligibility.map((item: any) => ({
@@ -95,7 +121,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 7. Save action items
+    // 10. Save action items
     if (result.actionItems?.length) {
       await db.insert(actionItems).values(
         result.actionItems.map((item: any, index: number) => ({
@@ -107,7 +133,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 8. Return the new analysis
+    // 11. Return the new analysis
     return NextResponse.json({
       success: true,
       analysisId: savedAnalysis.id,
