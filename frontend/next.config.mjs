@@ -3,9 +3,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
   images: {
     unoptimized: true,
   },
-}
 
-export default nextConfig
+  serverExternalPackages: [
+    "pdf-parse",
+    "@napi-rs/canvas",
+  ],
+};
+
+export default nextConfig;
