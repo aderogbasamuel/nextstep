@@ -48,7 +48,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [processingResume, setProcessingResume] = useState(false);
+  const [resumeError, setResumeError] = useState("");
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -100,10 +102,7 @@ export default function Profile() {
     loadProfile();
   }, []);
 
-  function updateField(
-    field: keyof Profile,
-    value: string
-  ) {
+  function updateField(field: keyof Profile, value: string) {
     setProfile((current) => ({
       ...current,
       [field]: value,
@@ -111,7 +110,75 @@ export default function Profile() {
 
     setSaved(false);
   }
+  async function handleResumeUpload() {
+    if (!resumeFile) return;
 
+    setProcessingResume(true);
+    setResumeError("");
+    setSaved(false);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", resumeFile);
+
+      const response = await fetch("/api/profile/process-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process resume.");
+      }
+
+
+      const extracted = data.profile;
+
+      // Format experience objects array into plain text
+      const experienceString = Array.isArray(extracted.experience)
+        ? extracted.experience
+            .map((item: any) => {
+              if (typeof item === "string") return item;
+              const header = [item.role, item.company]
+                .filter(Boolean)
+                .join(" — ");
+              return [header, item.description].filter(Boolean).join("\n");
+            })
+            .join("\n\n")
+        : String(extracted.experience ?? "");
+
+      // Format skills array into a comma-separated string
+      const skillsString = Array.isArray(extracted.skills)
+        ? extracted.skills.join(", ")
+        : String(extracted.skills ?? "");
+
+      setProfile({
+        university: String(extracted.university ?? ""),
+        degree: String(extracted.degree ?? ""),
+        fieldOfStudy: String(extracted.fieldOfStudy ?? ""),
+        studyLevel: String(extracted.studyLevel ?? ""),
+        graduationYear: extracted.graduationYear
+          ? String(extracted.graduationYear)
+          : "",
+        location: String(extracted.location ?? ""),
+        skills: skillsString,
+        experience: experienceString,
+      });
+
+      setResumeFile(null);
+    } catch (error) {
+      console.error(error);
+
+      setResumeError(
+        error instanceof Error
+          ? error.message
+          : "Failed to process your resume.",
+      );
+    } finally {
+      setProcessingResume(false);
+    }
+  }
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
@@ -144,9 +211,7 @@ export default function Profile() {
         degree: data.degree ?? "",
         fieldOfStudy: data.fieldOfStudy ?? "",
         studyLevel: data.studyLevel ?? "",
-        graduationYear: data.graduationYear
-          ? String(data.graduationYear)
-          : "",
+        graduationYear: data.graduationYear ? String(data.graduationYear) : "",
         location: data.location ?? "",
         skills: data.skills ?? "",
         experience: data.experience ?? "",
@@ -174,7 +239,7 @@ export default function Profile() {
     ];
 
     const completed = fields.filter(
-      (field) => field.trim().length > 0
+      (field) => typeof field === "string" && field.trim().length > 0,
     ).length;
 
     return Math.round((completed / fields.length) * 100);
@@ -201,7 +266,6 @@ export default function Profile() {
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-10 text-slate-900 lg:px-12">
       <div className="mx-auto max-w-3xl">
-
         {/* Back */}
         <Link
           href="/dashboard"
@@ -229,18 +293,128 @@ export default function Profile() {
             </div>
           </div>
         </div>
+        {/* Resume import */}
+        <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6">
+          <div className="flex items-start gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50">
+              <BriefcaseBusiness className="size-5 text-blue-600" />
+            </div>
 
+            <div>
+              <h2 className="font-semibold">
+                Build your profile from your resume
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Upload your resume and NextStep will extract your education,
+                skills, and experience. You can review and edit everything
+                before saving.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5">
+            <input
+              id="resume-upload"
+              type="file"
+              accept=".pdf,.docx,.txt"
+              className="hidden"
+              onChange={(event) => {
+                const selected = event.target.files?.[0];
+
+                if (!selected) return;
+
+                setResumeError("");
+
+                if (selected.size > 10 * 1024 * 1024) {
+                  setResumeError("Resume must be smaller than 10MB.");
+                  return;
+                }
+
+                setResumeFile(selected);
+              }}
+            />
+
+            {!resumeFile ? (
+              <label
+                htmlFor="resume-upload"
+                className="flex cursor-pointer flex-col items-center justify-center py-6 text-center"
+              >
+                <div className="grid size-11 place-items-center rounded-full bg-white shadow-sm">
+                  <BriefcaseBusiness className="size-5 text-slate-600" />
+                </div>
+
+                <p className="mt-3 text-sm font-medium text-slate-900">
+                  Upload your resume
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  PDF, DOCX, or TXT · Maximum 10MB
+                </p>
+
+                <span className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+                  Choose file
+                </span>
+              </label>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-900">
+                      {resumeFile.name}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      {(resumeFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setResumeFile(null)}
+                    className="text-sm text-slate-500 hover:text-slate-900"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResumeUpload}
+                  disabled={processingResume}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {processingResume ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Processing resume...
+                    </>
+                  ) : (
+                    "Extract profile information"
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {resumeError && (
+            <p className="mt-3 text-sm text-red-600">{resumeError}</p>
+          )}
+
+          <p className="mt-3 text-xs text-slate-400">
+            Your extracted information will appear in the form below for you to
+            review before saving.
+          </p>
+        </section>
         {/* Completeness */}
         <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold">
-                Profile completeness
-              </p>
+              <p className="text-sm font-semibold">Profile completeness</p>
 
               <p className="mt-1 text-xs text-slate-500">
-                Complete your profile so NextStep can make better
-                eligibility and requirement matches.
+                Complete your profile so NextStep can make better eligibility
+                and requirement matches.
               </p>
             </div>
 
@@ -266,7 +440,6 @@ export default function Profile() {
         </section>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-
           {/* Personal information */}
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <SectionHeader
@@ -289,9 +462,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Email
-                </label>
+                <label className="mb-2 block text-sm font-medium">Email</label>
 
                 <input
                   value={user?.email ?? "Your email"}
@@ -304,9 +475,7 @@ export default function Profile() {
                 label="Location"
                 value={profile.location}
                 placeholder="Lagos, Nigeria"
-                onChange={(value) =>
-                  updateField("location", value)
-                }
+                onChange={(value) => updateField("location", value)}
               />
             </div>
           </section>
@@ -324,27 +493,21 @@ export default function Profile() {
                 label="University"
                 value={profile.university}
                 placeholder="University of Lagos"
-                onChange={(value) =>
-                  updateField("university", value)
-                }
+                onChange={(value) => updateField("university", value)}
               />
 
               <Field
                 label="Degree"
                 value={profile.degree}
                 placeholder="B.Eng"
-                onChange={(value) =>
-                  updateField("degree", value)
-                }
+                onChange={(value) => updateField("degree", value)}
               />
 
               <Field
                 label="Field of study"
                 value={profile.fieldOfStudy}
                 placeholder="Computer Engineering"
-                onChange={(value) =>
-                  updateField("fieldOfStudy", value)
-                }
+                onChange={(value) => updateField("fieldOfStudy", value)}
               />
 
               <div>
@@ -355,23 +518,14 @@ export default function Profile() {
                 <select
                   value={profile.studyLevel}
                   onChange={(event) =>
-                    updateField(
-                      "studyLevel",
-                      event.target.value
-                    )
+                    updateField("studyLevel", event.target.value)
                   }
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
                   <option value="">Select level</option>
-                  <option value="Undergraduate">
-                    Undergraduate
-                  </option>
-                  <option value="Graduate">
-                    Graduate
-                  </option>
-                  <option value="Postgraduate">
-                    Postgraduate
-                  </option>
+                  <option value="Undergraduate">Undergraduate</option>
+                  <option value="Graduate">Graduate</option>
+                  <option value="Postgraduate">Postgraduate</option>
                   <option value="PhD">PhD</option>
                 </select>
               </div>
@@ -381,12 +535,7 @@ export default function Profile() {
                 type="number"
                 value={profile.graduationYear}
                 placeholder="2029"
-                onChange={(value) =>
-                  updateField(
-                    "graduationYear",
-                    value
-                  )
-                }
+                onChange={(value) => updateField("graduationYear", value)}
               />
             </div>
           </section>
@@ -406,12 +555,7 @@ export default function Profile() {
 
               <textarea
                 value={profile.skills}
-                onChange={(event) =>
-                  updateField(
-                    "skills",
-                    event.target.value
-                  )
-                }
+                onChange={(event) => updateField("skills", event.target.value)}
                 placeholder="JavaScript, React, Node.js, Git, MongoDB, Python..."
                 rows={5}
                 className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -439,10 +583,7 @@ export default function Profile() {
               <textarea
                 value={profile.experience}
                 onChange={(event) =>
-                  updateField(
-                    "experience",
-                    event.target.value
-                  )
+                  updateField("experience", event.target.value)
                 }
                 placeholder={`Example:
 
@@ -457,8 +598,8 @@ Built a full-stack marketplace using React, Firebase and Paystack.`}
               />
 
               <p className="mt-2 text-xs text-slate-400">
-                Include projects, internships, jobs, leadership,
-                volunteering, or other relevant experience.
+                Include projects, internships, jobs, leadership, volunteering,
+                or other relevant experience.
               </p>
             </div>
           </section>
@@ -476,10 +617,9 @@ Built a full-stack marketplace using React, Firebase and Paystack.`}
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-blue-800">
-                  Your profile helps NextStep compare your
-                  education, location, skills, and experience
-                  against opportunity requirements and identify
-                  what you qualify for and what you still need.
+                  Your profile helps NextStep compare your education, location,
+                  skills, and experience against opportunity requirements and
+                  identify what you qualify for and what you still need.
                 </p>
               </div>
             </div>
@@ -543,9 +683,7 @@ function SectionHeader({
       <div>
         <h2 className="font-semibold">{title}</h2>
 
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          {description}
-        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
       </div>
     </div>
   );
@@ -566,17 +704,13 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium">
-        {label}
-      </label>
+      <label className="mb-2 block text-sm font-medium">{label}</label>
 
       <input
         type={type}
         value={value}
         placeholder={placeholder}
-        onChange={(event) =>
-          onChange(event.target.value)
-        }
+        onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
       />
     </div>
