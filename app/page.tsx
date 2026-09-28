@@ -6,7 +6,6 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
-  Clock3,
   FileText,
   GraduationCap,
   BriefcaseBusiness,
@@ -19,91 +18,102 @@ import {
   Clock,
   ShieldCheck,
   Zap,
+  CheckCircle,
+  FileSearch,
+  Target,
+  ListTodo,
 } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
+import NextStepLogo from "@/components/ui/NextStepLogo";
+
 const steps = [
   {
     number: "01",
     icon: Upload,
-    title: "Upload",
-    body: "Add a PDF, document, or opportunity description.",
+    title: "Upload Document",
+    body: "Drop in any opportunity PDF, job description, grant guideline, or scholarship form.",
   },
   {
     number: "02",
     icon: Sparkles,
-    title: "Analyze",
-    body: "We extract requirements, deadlines, and application steps.",
+    title: "AI Analysis",
+    body: "Our engine instantly parses core eligibility, deadlines, required documents, and fine print.",
   },
   {
     number: "03",
     icon: ClipboardCheck,
-    title: "Match",
-    body: "See how your profile compares to what is required.",
+    title: "Profile Match",
+    body: "Compare requirement criteria directly against your experience and qualifications.",
   },
   {
     number: "04",
     icon: ArrowRight,
-    title: "Take action",
-    body: "Follow a clear, personalized checklist to move forward.",
+    title: "Execute Checklist",
+    body: "Follow a step-by-step interactive roadmap engineered to get your application submitted.",
   },
 ];
 
 const features = [
-  [
-    "Requirement extraction",
-    "Find eligibility criteria, documents, skills, and deadlines in seconds.",
-  ],
-  [
-    "Personalized matching",
-    "Compare every opportunity against the profile you build.",
-  ],
-  [
-    "Gap analysis",
-    "See what you have, what is missing, and what needs review.",
-  ],
-  ["Action plans", "Turn dense instructions into an ordered checklist."],
-  [
-    "Deadline tracking",
-    "Keep important dates visible before they become urgent.",
-  ],
-  ["Saved analyses", "Keep every opportunity and its next steps in one place."],
+  {
+    icon: FileSearch,
+    title: "Requirement Extraction",
+    body: "Find hidden eligibility criteria, required documents, mandatory skills, and strict deadlines in seconds.",
+  },
+  {
+    icon: Target,
+    title: "Personalized Matching",
+    body: "Compare every opportunity against your personal background and automatically calculate match probability.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Gap Analysis",
+    body: "Clearly pinpoint what qualifications you satisfy, what is missing, and what requires secondary review.",
+  },
+  {
+    icon: ListTodo,
+    title: "Automated Action Plans",
+    body: "Transform dense, confusing legal and institutional guidelines into a straightforward, prioritized checklist.",
+  },
+  {
+    icon: Clock,
+    title: "Deadline Tracking",
+    body: "Keep urgent cutoff dates and key milestones front-and-center so you never miss an application window.",
+  },
+  {
+    icon: CheckCircle,
+    title: "Centralized Workspace",
+    body: "Store all your parsed documents, match analyses, and application progress inside one unified dashboard.",
+  },
 ];
 
 const useCases = [
   {
     icon: GraduationCap,
     title: "Scholarships",
-    body: "Know whether you qualify and exactly what documents you need.",
+    body: "Know whether you qualify and exactly what documents you need before starting.",
   },
   {
     icon: BriefcaseBusiness,
-    title: "Internships & jobs",
-    body: "Compare your skills and experience against the role.",
+    title: "Internships & Jobs",
+    body: "Compare your skills against job specifications to tailor your application strategy.",
   },
   {
     icon: Award,
-    title: "Grants & competitions",
-    body: "Understand eligibility criteria and submission requirements.",
+    title: "Grants & Competitions",
+    body: "Unpack complex eligibility guidelines and track mandatory submission steps.",
   },
   {
     icon: FileText,
-    title: "University processes",
-    body: "Turn institutional guidelines into clear, doable steps.",
+    title: "University Processes",
+    body: "Turn institutional guidelines and transfer policies into manageable tasks.",
   },
 ];
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center">
-      <Image
-        src="/logo.png"
-        width={180}
-        height={60}
-        alt="NextStep"
-        className="h-auto w-[180px]"
-        priority
-      />
+    <Link href="/" className="">
+      <NextStepLogo tagline className="h-24 w-auto" />
     </Link>
   );
 }
@@ -295,54 +305,84 @@ function ProductPreview() {
 
 export default function Page() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-[#0f172a]">
-      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-[#f8fafc]/90 backdrop-blur-xl">
+    <main className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
+      {/* Light Glass Header */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
           <Logo />
-          <nav className="hidden items-center gap-8 text-sm text-slate-500 md:flex">
+          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <a href="#how-it-works" className="transition hover:text-slate-900">
               How it works
-            </a>
-            <a href="#use-cases" className="transition hover:text-slate-900">
-              Use cases
             </a>
             <a href="#features" className="transition hover:text-slate-900">
               Features
             </a>
+            <a href="#use-cases" className="transition hover:text-slate-900">
+              Use cases
+            </a>
           </nav>
-          <div className="hidden items-center gap-5 md:flex">
+          <div className="hidden items-center gap-4 md:flex">
             <Link
               href="/login"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
             >
               Sign in
             </Link>
             <Link
               href="/analyze"
-              className="rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow"
             >
-              Get started <ArrowRight className="ml-1 inline size-4" />
+              Get started <ArrowRight className="size-4" />
             </Link>
           </div>
           <button
             aria-label="Toggle menu"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="rounded-lg p-2 text-slate-700 md:hidden"
+            className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 md:hidden"
           >
-            {mobileOpen ? <X /> : <Menu />}
+            {mobileOpen ? <X className="size-6" /> : <Menu className="size-6" />}
           </button>
         </div>
+
+        {/* Mobile Navigation Drawer */}
         {mobileOpen && (
-          <div className="border-t border-slate-200 bg-white px-5 py-4 md:hidden">
-            <div className="flex flex-col gap-4 text-sm">
-              <a href="#how-it-works">How it works</a>
-              <a href="#use-cases">Use cases</a>
-              <a href="#features">Features</a>
-              <Link href="/login">Sign in</Link>
+          <div className="border-t border-slate-200 bg-white px-5 py-6 shadow-xl md:hidden">
+            <div className="flex flex-col gap-4 font-medium text-slate-700">
+              <a
+                href="#how-it-works"
+                onClick={() => setMobileOpen(false)}
+                className="py-1 hover:text-slate-900"
+              >
+                How it works
+              </a>
+              <a
+                href="#features"
+                onClick={() => setMobileOpen(false)}
+                className="py-1 hover:text-slate-900"
+              >
+                Features
+              </a>
+              <a
+                href="#use-cases"
+                onClick={() => setMobileOpen(false)}
+                className="py-1 hover:text-slate-900"
+              >
+                Use cases
+              </a>
+              <hr className="my-1 border-slate-100" />
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="py-1 hover:text-slate-900"
+              >
+                Sign in
+              </Link>
               <Link
                 href="/analyze"
-                className="rounded-lg bg-[#0f172a] px-4 py-2.5 text-center font-semibold text-white"
+                onClick={() => setMobileOpen(false)}
+                className="mt-2 rounded-xl bg-slate-900 px-4 py-3 text-center font-semibold text-white shadow-sm"
               >
                 Get started
               </Link>
@@ -350,114 +390,136 @@ export default function Page() {
           </div>
         )}
       </header>
+
+      {/* Hero Section */}
       <HeroSection />
+
+      {/* Social Proof / Capability Ribbon */}
       <section className="border-y border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-5 py-6 lg:px-8">
-          <p className="mr-3 text-sm font-medium text-slate-500">
-            From opportunities to applications:
+          <p className="mr-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Supports documents for:
           </p>
           {[
             "Scholarships",
             "Internships",
-            "Jobs",
-            "Grants",
-            "University processes",
+            "Job Postings",
+            "Grants & Funding",
+            "University Applications",
           ].map((x) => (
             <span
               key={x}
-              className="rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-slate-600"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs"
             >
               {x}
             </span>
           ))}
         </div>
       </section>
-      <section
-        id="how-it-works"
-        className="mx-auto max-w-7xl px-5 py-24 lg:px-8"
-      >
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="mx-auto max-w-7xl px-5 py-24 lg:px-8">
         <div className="max-w-xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-600">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
             How it works
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
             Clarity in four simple steps.
           </h2>
-          <p className="mt-4 text-slate-500">
-            No more rereading the same document and wondering if you missed
-            something important.
+          <p className="mt-4 text-base leading-relaxed text-slate-600">
+            No more manually reading 30-page documents or wondering if you missed critical eligibility criteria.
           </p>
         </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-4">
+
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map(({ number, icon: Icon, title, body }) => (
             <div
               key={number}
-              className="rounded-xl border border-slate-200 bg-white p-5"
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-blue-600">
-                  {number}
-                </span>
-                <Icon className="size-5 text-slate-400" />
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-blue-600">
+                    {number}
+                  </span>
+                  <div className="grid size-10 place-items-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600">
+                    <Icon className="size-5" />
+                  </div>
+                </div>
+                <h3 className="mt-6 text-lg font-bold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
               </div>
-              <h3 className="mt-10 text-base font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
             </div>
           ))}
         </div>
       </section>
-      <section id="features" className="border-y border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8">
-          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+
+      {/* Features Grid Section */}
+      <section id="features" className="border-y border-slate-200 bg-white py-24">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-600">
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
                 The NextStep difference
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                From information to action.
+              <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                From static information to active execution.
               </h2>
             </div>
-            <p className="max-w-md text-sm leading-6 text-slate-500">
-              Everything you need to make better decisions about the
-              opportunities in front of you.
+            <p className="max-w-md text-sm leading-relaxed text-slate-600">
+              Everything you need to analyze, qualify, and execute on high-impact opportunities with absolute confidence.
             </p>
           </div>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map(([title, body], i) => (
-              <div key={title} className="bg-white p-6">
-                <span className="text-xs font-bold text-blue-600">
-                  0{i + 1}
-                </span>
-                <h3 className="mt-8 font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
+
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map(({ icon: Icon, title, body }, i) => (
+              <div
+                key={title}
+                className="group rounded-2xl border border-slate-200 bg-slate-50/50 p-8 transition-all duration-200 hover:border-slate-300 hover:bg-white hover:shadow-lg"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="grid size-10 place-items-center rounded-xl bg-blue-500/10 text-blue-600">
+                    <Icon className="size-5" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400">
+                    0{i + 1}
+                  </span>
+                </div>
+                <h3 className="mt-6 text-lg font-bold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Use Cases Section */}
       <section id="use-cases" className="mx-auto max-w-7xl px-5 py-24 lg:px-8">
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-600">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
             Built for your next opportunity
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-            One clear plan, whatever you&apos;re applying for.
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+            One engine, every target application.
           </h2>
         </div>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {useCases.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
-              className="rounded-xl border border-slate-200 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-lg"
+              className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-7 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl"
             >
-              <div className="grid size-10 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                <Icon className="size-5" />
+              <div>
+                <div className="grid size-12 place-items-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                  <Icon className="size-6" />
+                </div>
+                <h3 className="mt-6 text-lg font-bold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
               </div>
-              <h3 className="mt-5 font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
               <a
-                href="#"
-                className="mt-5 inline-flex items-center text-xs font-semibold text-blue-600"
+                href="/analyze"
+                className="mt-6 inline-flex items-center text-xs font-bold text-blue-600 transition-colors hover:text-blue-700"
               >
                 Explore use case <ChevronRight className="ml-1 size-3.5" />
               </a>
@@ -465,44 +527,54 @@ export default function Page() {
           ))}
         </div>
       </section>
-      <section className="mx-5 mb-20 overflow-hidden rounded-2xl bg-[#0f172a] lg:mx-auto lg:max-w-7xl">
-        <div className="flex flex-col items-start justify-between gap-8 px-7 py-12 sm:px-12 sm:py-16 md:flex-row md:items-center">
-          <div>
-            <h2 className="max-w-xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
+
+      {/* Bottom CTA Banner */}
+      <section className="mx-5 mb-24 overflow-hidden rounded-3xl bg-slate-950 text-white shadow-2xl lg:mx-auto lg:max-w-7xl">
+        <div className="relative flex flex-col items-start justify-between gap-8 px-8 py-16 sm:px-14 sm:py-20 md:flex-row md:items-center">
+          <div className="absolute -right-10 -top-10 -z-0 size-80 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="relative z-10 max-w-2xl">
+            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
               Stop reading requirements.
               <br />
-              Start taking action.
+              <span className="bg-gradient-to-r from-blue-400 to-sky-300 bg-clip-text text-transparent">
+                Start taking action.
+              </span>
             </h2>
-            <p className="mt-4 max-w-lg text-sm leading-6 text-slate-400">
-              Your next opportunity is easier to understand than you think.
+            <p className="mt-4 text-base text-slate-400">
+              Upload your document now and get an instant eligibility breakdown in under 30 seconds.
             </p>
           </div>
           <Link
             href="/analyze"
-            className="shrink-0 rounded-lg bg-white px-5 py-3.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+            className="relative z-10 inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-6 py-4 text-sm font-bold text-slate-900 transition-all hover:bg-slate-100 hover:shadow-lg"
           >
-            Get started <ArrowRight className="ml-1 inline size-4" />
+            Get Started Now <ArrowRight className="ml-2 size-4" />
           </Link>
         </div>
       </section>
+
+      {/* Footer */}
       <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-10 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <Logo />
-          <div className="flex flex-wrap gap-5">
-            <a href="#features" className="hover:text-slate-700">
+          <div className="flex flex-wrap gap-6 font-medium text-slate-600">
+            <a href="#how-it-works" className="hover:text-slate-900">
+              How it works
+            </a>
+            <a href="#features" className="hover:text-slate-900">
               Features
             </a>
-            <a href="#use-cases" className="hover:text-slate-700">
+            <a href="#use-cases" className="hover:text-slate-900">
               Use cases
             </a>
-            <a href="#" className="hover:text-slate-700">
-              Privacy
+            <a href="#" className="hover:text-slate-900">
+              Privacy Policy
             </a>
-            <a href="#" className="hover:text-slate-700">
-              Contact
+            <a href="#" className="hover:text-slate-900">
+              Terms of Service
             </a>
           </div>
-          <span>© 2026 NextStep</span>
+          <p className="text-xs text-slate-400">© 2026 NextStep. All rights reserved.</p>
         </div>
       </footer>
     </main>
