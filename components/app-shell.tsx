@@ -15,7 +15,7 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-
+import NextStepLogo from "@/components/ui/NextStepLogo"
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/analyze", label: "Analyze", icon: Plus },
@@ -144,13 +144,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className="flex items-center gap-2.5 font-semibold tracking-tight">
-      <span className="grid size-8 place-items-center rounded-lg bg-slate-950 text-white">
-        <ArrowRight className="size-4" />
-      </span>
-      {!compact && <span className="text-[17px]">NextStep</span>}
-    </span>
+  return compact ? (
+    <NextStepLogo variant="icon" className="h-8 w-auto" />
+  ) : (
+    <NextStepLogo className="h-8 w-auto" />
   );
 }
 function NavItem({
