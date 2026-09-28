@@ -113,7 +113,7 @@ const useCases = [
 function Logo() {
   return (
     <Link href="/" className="">
-      <NextStepLogo tagline className="h-24 w-auto" />
+      <NextStepLogo tagline className="h-18 w-auto" />
     </Link>
   );
 }
@@ -310,7 +310,7 @@ export default function Page() {
     <main className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased">
       {/* Light Glass Header */}
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 lg:px-8">
           <Logo />
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <a href="#how-it-works" className="transition hover:text-slate-900">
