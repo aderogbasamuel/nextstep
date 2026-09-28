@@ -16,7 +16,8 @@ import { db } from "@/lib/db";
 import { analyses, eligibility, actionItems } from "@/lib/db/schema";
 import ActionPlan from "@/components/ActionPlan";
 import DeadlineCard from "@/components/DeadlineCard";
-import ShareChecklistButton from "@/components/ShareCheckListButton";
+import ShareChecklistButton from "@/components/ShareChecklistButton";
+import { statusMeta } from "@/lib/analysis-ui";
 
 export default async function ResultPage({
   params,
@@ -87,12 +88,9 @@ export default async function ResultPage({
         ? { text: "Partial match", cls: "bg-amber-50 text-amber-700" }
         : { text: "Weak match", cls: "bg-red-50 text-red-700" };
 
-  const verdict =
-    missingItems.length > 0
-      ? { text: "Gaps to address", cls: "bg-red-50 text-red-700" }
-      : unclearItems.length > 0
-        ? { text: "Needs review", cls: "bg-amber-50 text-amber-700" }
-        : { text: "Eligible", cls: "bg-emerald-50 text-emerald-700" };
+  // Same source as the analyses list, so both pages always show the same status.
+  const meta = statusMeta(analysis.status);
+  const verdict = { text: meta.label, cls: meta.badge };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">

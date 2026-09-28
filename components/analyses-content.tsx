@@ -1,23 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import {
-  FileText,
-  Search,
-  SlidersHorizontal,
-  ChevronDown,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowUpDown, FileText, RefreshCw, Search } from "lucide-react";
 
+import { AppShell, PageHeader } from "@/components/app-shell";
 import {
-  AppShell,
-  PageHeader,
-  StatusBadge,
-} from "@/components/app-shell";
+  deadlineInfo,
+  deadlineToneClass,
+  formatType,
+  matchTone,
+  statusMeta,
+} from "@/lib/analysis-ui";
 
 type Analysis = {
   id: number;
-  userId: string;
   title: string;
   type: string;
   organization: string | null;
@@ -27,275 +24,363 @@ type Analysis = {
   createdAt: string;
 };
 
-type StatusFilter = "all" | "eligible" | "not_eligible" | "needs_review";
+type StatusFilter = "all" | "eligible" | "needs_review" | "not_eligible";
+type SortKey = "newest" | "deadline" | "match";
+
+const FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "eligible", label: "Eligible" },
+  { value: "needs_review", label: "Needs review" },
+  { value: "not_eligible", label: "Not eligible" },
+];
+
+const ROW_GRID =
+  "sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.7fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]";
 
 export function AnalysesContent() {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("all");
-
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sort, setSort] = useState<SortKey>("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchAnalyses() {
-      try {
-        setLoading(true);
-        setError("");
+  const load = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await fetch("/api/analyses");
+      const response = await fetch("/api/analyses", { signal });
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch analyses");
-        }
+      const data: unknown = await response.json();
+      if (!Array.isArray(data)) throw new Error("Unexpected response shape");
 
-        const data = await response.json();
-        setAnalyses(data);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to load your analyses.");
-      } finally {
-        setLoading(false);
-      }
+      setAnalyses(data as Analysis[]);
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      console.error(err);
+      setError("We couldn't load your analyses. Check your connection and try again.");
+    } finally {
+      if (!signal?.aborted) setLoading(false);
     }
-
-    fetchAnalyses();
   }, []);
 
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
-    return analyses.filter((analysis) => {
-      const matchesSearch =
-        !normalizedQuery ||
-        [
-          analysis.title,
-          analysis.organization ?? "",
-          analysis.type,
-          analysis.status,
-          analysis.match.toString(),
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery);
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        analysis.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [analyses, query, statusFilter]);
-
-  function formatDeadline(deadline: string | null) {
-    if (!deadline) return "No deadline";
-
-    return new Date(deadline).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
-
-  function formatType(type: string) {
-    return type
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  function getStatusTone(
-    status: string
-  ): "green" | "blue" | "amber" {
-    switch (status) {
-      case "eligible":
-        return "green";
-
-      case "not_eligible":
-        return "amber";
-
-      case "needs_review":
-      default:
-        return "blue";
+  const counts = useMemo(() => {
+    const base: Record<StatusFilter, number> = {
+      all: analyses.length,
+      eligible: 0,
+      needs_review: 0,
+      not_eligible: 0,
+    };
+    for (const a of analyses) {
+      if (a.status === "eligible") base.eligible += 1;
+      else if (a.status === "not_eligible") base.not_eligible += 1;
+      else base.needs_review += 1;
     }
-  }
+    return base;
+  }, [analyses]);
 
-  function formatStatus(status: string) {
-    switch (status) {
-      case "eligible":
-        return "Eligible";
+  const closingSoon = useMemo(
+    () =>
+      analyses.filter((a) => {
+        const tone = deadlineInfo(a.deadline).tone;
+        return tone === "urgent" || tone === "soon";
+      }).length,
+    [analyses],
+  );
 
-      case "not_eligible":
-        return "Not eligible";
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
 
-      case "needs_review":
-        return "Needs review";
+    const list = analyses.filter((a) => {
+      const bucket =
+        a.status === "eligible" || a.status === "not_eligible"
+          ? a.status
+          : "needs_review";
+      if (statusFilter !== "all" && bucket !== statusFilter) return false;
+      if (!q) return true;
+      return [a.title, a.organization ?? "", formatType(a.type)]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
 
-      default:
-        return status;
-    }
-  }
+    const now = Date.now();
+    // Upcoming deadlines first (soonest on top), then no deadline, then passed.
+    const deadlineRank = (a: Analysis) => {
+      const info = deadlineInfo(a.deadline, now);
+      if (info.tone === "none") return [1, 0] as const;
+      if (info.tone === "passed") return [2, -(info.time ?? 0)] as const;
+      return [0, info.time ?? 0] as const;
+    };
+
+    return [...list].sort((a, b) => {
+      if (sort === "match") return b.match - a.match;
+      if (sort === "deadline") {
+        const [ra, ta] = deadlineRank(a);
+        const [rb, tb] = deadlineRank(b);
+        return ra - rb || ta - tb;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [analyses, query, statusFilter, sort]);
+
+  const filtersActive = query.trim() !== "" || statusFilter !== "all";
 
   return (
     <AppShell>
       <main className="mx-auto max-w-7xl px-5 py-9 lg:px-10 lg:py-11">
-        {/* Header */}
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <PageHeader
             eyebrow="Your workspace"
             title="My analyses"
-            description="All the opportunities you've reviewed in one place."
+            description="Every opportunity you've reviewed, with what's left to do."
           />
 
           <Link
             href="/analyze"
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             + Analyze document
           </Link>
         </div>
 
-        {/* Search + filter */}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 size-4 text-slate-400" />
+        {!loading && !error && analyses.length > 0 && (
+          <dl className="mt-8 grid grid-cols-3 gap-3">
+            <Stat label="Analyzed" value={counts.all} />
+            <Stat label="Eligible" value={counts.eligible} />
+            <Stat
+              label="Closing within 7 days"
+              value={closingSoon}
+              highlight={closingSoon > 0}
+            />
+          </dl>
+        )}
 
+        <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
+              type="search"
               aria-label="Search opportunities"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search opportunities..."
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by title, organization or type"
               className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
           <div className="relative">
-            <SlidersHorizontal className="pointer-events-none absolute left-3 top-3 size-4 text-slate-400" />
-
+            <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <select
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(
-                  event.target.value as StatusFilter
-                )
-              }
-              className="appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-10 text-sm font-medium text-slate-600 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              aria-label="Sort analyses"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-8 text-sm font-medium text-slate-600 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 lg:w-auto"
             >
-              <option value="all">All statuses</option>
-              <option value="eligible">Eligible</option>
-              <option value="needs_review">
-                Needs review
-              </option>
-              <option value="not_eligible">
-                Not eligible
-              </option>
+              <option value="newest">Newest first</option>
+              <option value="deadline">Deadline soonest</option>
+              <option value="match">Best match</option>
             </select>
-
-            <ChevronDown className="pointer-events-none absolute right-3 top-3 size-4 text-slate-400" />
           </div>
         </div>
 
-        {/* Content */}
+        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+          {FILTERS.map((f) => {
+            const active = statusFilter === f.value;
+            return (
+              <button
+                key={f.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setStatusFilter(f.value)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                  active
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                {f.label}
+                <span className={`ml-1.5 tabular-nums ${active ? "text-blue-100" : "text-slate-400"}`}>
+                  {counts[f.value]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {loading ? (
-          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-10 text-center">
-            <p className="text-sm text-slate-500">
-              Loading your analyses...
-            </p>
+          <div
+            className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white"
+            aria-busy="true"
+            aria-label="Loading your analyses"
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 last:border-0">
+                <div className="size-9 rounded-lg bg-slate-100 motion-safe:animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-1/3 rounded bg-slate-100 motion-safe:animate-pulse" />
+                  <div className="h-3 w-1/5 rounded bg-slate-100 motion-safe:animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-10 text-center">
-            <p className="text-sm text-red-600">
-              {error}
-            </p>
+          <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm text-red-700">{error}</p>
+            <button
+              type="button"
+              onClick={() => load()}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-3.5 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+            >
+              <RefreshCw className="size-4" />
+              Try again
+            </button>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-12 text-center">
             <div className="mx-auto grid size-10 place-items-center rounded-lg bg-slate-100 text-slate-500">
               <FileText className="size-5" />
             </div>
 
-            <p className="mt-4 text-sm font-semibold text-slate-900">
-              No analyses found
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              {query || statusFilter !== "all"
-                ? "Try changing your search or filter."
-                : "Analyze your first opportunity to get started."}
-            </p>
-
-            {!query && statusFilter === "all" && (
-              <Link
-                href="/analyze"
-                className="mt-5 inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Analyze an opportunity
-              </Link>
+            {filtersActive ? (
+              <>
+                <p className="mt-4 text-sm font-semibold text-slate-900">
+                  No analyses match your search
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Try a different search or status.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setStatusFilter("all");
+                  }}
+                  className="mt-5 inline-flex rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Clear search and filters
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 text-sm font-semibold text-slate-900">
+                  You haven&apos;t analyzed anything yet
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Upload a job, scholarship or grant document to see if you qualify and what to do next.
+                </p>
+                <Link
+                  href="/analyze"
+                  className="mt-5 inline-flex rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+                  Analyze your first document
+                </Link>
+              </>
             )}
           </div>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            {/* Table header */}
-            <div className="hidden grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.7fr] gap-4 border-b border-slate-100 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 sm:grid">
-              <span>Opportunity</span>
-              <span>Type</span>
-              <span>Match</span>
-              <span>Status</span>
-              <span>Deadline</span>
-            </div>
+          <>
+            <p className="mt-5 text-xs text-slate-400" aria-live="polite">
+              Showing {visible.length} of {analyses.length}
+            </p>
 
-            {/* Rows */}
-            {filtered.map((analysis) => (
-              <Link
-                href={`/analyses/${analysis.id}`}
-                key={analysis.id}
-                className="grid gap-3 border-b border-slate-100 px-5 py-4 transition last:border-0 hover:bg-slate-50 sm:grid-cols-[1.5fr_0.7fr_0.5fr_0.8fr_0.7fr] sm:items-center sm:gap-4"
+            <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div
+                className={`hidden gap-4 border-b border-slate-100 px-5 py-3 text-xs font-semibold text-slate-400 sm:grid ${ROW_GRID}`}
               >
-                {/* Opportunity */}
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                    <FileText className="size-4" />
-                  </span>
+                <span>Opportunity</span>
+                <span>Type</span>
+                <span>Match</span>
+                <span>Status</span>
+                <span>Deadline</span>
+              </div>
 
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">
-                      {analysis.title}
-                    </p>
+              {visible.map((a) => {
+                const status = statusMeta(a.status);
+                const deadline = deadlineInfo(a.deadline);
+                const tone = matchTone(a.match);
+                const width = Math.max(0, Math.min(100, a.match));
 
-                    {analysis.organization && (
-                      <p className="mt-0.5 truncate text-xs text-slate-400">
-                        {analysis.organization}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                return (
+                  <Link
+                    key={a.id}
+                    href={`/analyses/${a.id}`}
+                    className={`grid gap-3 border-b border-slate-100 px-5 py-4 transition last:border-0 hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 sm:items-center sm:gap-4 ${ROW_GRID}`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
+                        <FileText className="size-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{a.title}</p>
+                        {a.organization && (
+                          <p className="mt-0.5 truncate text-xs text-slate-400">{a.organization}</p>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Type */}
-                <span className="text-xs text-slate-500">
-                  {formatType(analysis.type)}
-                </span>
+                    {/* On phones these sit in one wrapped row under the title; on wider screens they become grid columns. */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-12 sm:contents sm:pl-0">
+                      <span className="truncate text-xs text-slate-500">{formatType(a.type)}</span>
 
-                {/* Match */}
-                <span className="text-sm font-bold text-slate-900">
-                  {analysis.match}%
-                </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-10 text-sm font-bold tabular-nums ${tone.text}`}>{a.match}%</span>
+                        <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                          <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${width}%` }} />
+                        </div>
+                      </div>
 
-                {/* Status */}
-                <StatusBadge
-                  tone={getStatusTone(analysis.status)}
-                >
-                  {formatStatus(analysis.status)}
-                </StatusBadge>
+                      <span
+                        className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${status.badge}`}
+                      >
+                        {status.label}
+                      </span>
 
-                {/* Deadline */}
-                <span className="text-sm text-slate-500">
-                  {formatDeadline(analysis.deadline)}
-                </span>
-              </Link>
-            ))}
-          </div>
+                      <div className="text-sm">
+                        <p className="text-slate-600">{deadline.date}</p>
+                        {deadline.label && (
+                          <p className={`text-xs font-medium ${deadlineToneClass[deadline.tone]}`}>
+                            {deadline.label}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </main>
     </AppShell>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        highlight ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"
+      }`}
+    >
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{value}</dd>
+    </div>
   );
 }
