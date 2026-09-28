@@ -16,7 +16,7 @@ import { db } from "@/lib/db";
 import { analyses, eligibility, actionItems } from "@/lib/db/schema";
 import ActionPlan from "@/components/ActionPlan";
 import DeadlineCard from "@/components/DeadlineCard";
-import ShareChecklistButton from "@/components/ShareChecklistButton";
+import ShareChecklistButton from "@/components/ShareCheckListButton";
 import { statusMeta } from "@/lib/analysis-ui";
 
 export default async function ResultPage({
