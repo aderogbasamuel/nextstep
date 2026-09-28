@@ -1,15 +1,10 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
-  CalendarDays,
-  Check,
-  CheckCircle2,
-  Circle,
-  Clock3,
-  Download,
-  FileText,
-  Share2,
   AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock3,
+  FileText,
   XCircle,
 } from "lucide-react";
 import { headers } from "next/headers";
@@ -20,33 +15,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { analyses, eligibility, actionItems } from "@/lib/db/schema";
 import ActionPlan from "@/components/ActionPlan";
-type EligibilityItem = {
-  id: number;
-  requirement: string;
-  explanation: string;
-  status: "good" | "warn" | "bad";
-};
-
-type ActionItem = {
-  id: number;
-  title: string;
-  completed: boolean;
-  position: number;
-};
-
-type Analysis = {
-  id: number;
-  title: string;
-  type: string;
-  organization: string | null;
-  match: number;
-  status: string;
-  deadline: string | null;
-  summary: string | null;
-  createdAt: string;
-  eligibility: EligibilityItem[];
-  actionItems: ActionItem[];
-};
+import DeadlineCard from "@/components/DeadlineCard";
+import ShareChecklistButton from "@/components/ShareCheckListButton";
 
 export default async function ResultPage({
   params,
@@ -93,18 +63,37 @@ export default async function ResultPage({
     .where(eq(actionItems.analysisId, analysisId))
     .orderBy(asc(actionItems.position));
 
-  const completedTasks = actionItemsData.filter(
-    (task) => task.completed,
-  ).length;
-const attentionItems = eligibilityItems.filter(
-  (item) => item.status === "missing" || item.status === "unclear"
-);
+  const missingItems = eligibilityItems.filter(
+    (item) => item.status === "missing",
+  );
+  const unclearItems = eligibilityItems.filter(
+    (item) => item.status === "unclear",
+  );
+  const attentionCount = missingItems.length + unclearItems.length;
 
-const attentionCount = attentionItems.length;
-  const totalTasks = actionItemsData.length;
+  // Deadline as a plain string so it can cross into client components.
+  const rawDeadline = analysis.deadline as string | Date | null;
+  const deadlineValue = rawDeadline
+    ? typeof rawDeadline === "string"
+      ? rawDeadline
+      : rawDeadline.toISOString()
+    : null;
 
-  const progress =
-    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  // Labels follow the actual data instead of being hard-coded.
+  const matchLabel =
+    analysis.match >= 75
+      ? { text: "Strong match", cls: "bg-blue-50 text-blue-700" }
+      : analysis.match >= 50
+        ? { text: "Partial match", cls: "bg-amber-50 text-amber-700" }
+        : { text: "Weak match", cls: "bg-red-50 text-red-700" };
+
+  const verdict =
+    missingItems.length > 0
+      ? { text: "Gaps to address", cls: "bg-red-50 text-red-700" }
+      : unclearItems.length > 0
+        ? { text: "Needs review", cls: "bg-amber-50 text-amber-700" }
+        : { text: "Eligible", cls: "bg-emerald-50 text-emerald-700" };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
@@ -116,22 +105,9 @@ const attentionCount = attentionItems.length;
             <ArrowLeft className="size-4" />
             Back to analyses
           </Link>
-          <div className="flex gap-2">
-            <button
-              className="rounded-lg border border-slate-200 p-2.5 text-slate-500"
-              aria-label="Share"
-            >
-              <Share2 className="size-4" />
-            </button>
-            <button
-              className="rounded-lg border border-slate-200 p-2.5 text-slate-500"
-              aria-label="Download"
-            >
-              <Download className="size-4" />
-            </button>
-          </div>
         </div>
       </header>
+
       <div className="mx-auto max-w-6xl px-5 py-10">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
@@ -147,10 +123,13 @@ const attentionCount = attentionItems.length;
               {new Date(analysis.createdAt).toLocaleDateString()}
             </p>
           </div>
-          <span className="w-fit rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-            Eligible
+          <span
+            className={`w-fit rounded-full px-3 py-1.5 text-xs font-semibold ${verdict.cls}`}
+          >
+            {verdict.text}
           </span>
         </div>
+
         <div className="mt-8 grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="flex items-start justify-between">
@@ -160,10 +139,13 @@ const attentionCount = attentionItems.length;
                   How your profile compares
                 </p>
               </div>
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-                Strong match
+              <span
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${matchLabel.cls}`}
+              >
+                {matchLabel.text}
               </span>
             </div>
+
             <div className="mt-8 flex items-center gap-5">
               <div
                 className="relative grid size-32 shrink-0 place-items-center rounded-full"
@@ -181,31 +163,32 @@ const attentionCount = attentionItems.length;
                 </div>
               </div>
               <p className="text-sm leading-6 text-slate-500">
-                You meet most of the core requirements, but there are a few gaps
-                worth reviewing.
+                {analysis.summary ??
+                  "Review the requirements on the right to see where you stand."}
               </p>
             </div>
-            <div className="mt-8 rounded-lg bg-amber-50 p-4">
-              {attentionCount > 0 && (
-  <div className="flex gap-3">
-    <AlertCircle className="size-5 shrink-0 text-amber-600" />
 
-    <div>
-      <p className="text-sm font-semibold text-amber-900">
-        {attentionCount}{" "}
-        {attentionCount === 1 ? "area needs" : "areas need"} your attention
-      </p>
-
-      <p className="mt-1 text-xs leading-5 text-amber-800">
-        {attentionItems.some((item) => item.status === "missing")
-          ? "Review the missing requirements before applying."
-          : "Review the requirements marked as unclear before applying."}
-      </p>
-    </div>
-  </div>
-)}
-            </div>
+            {attentionCount > 0 && (
+              <div className="mt-8 rounded-lg bg-amber-50 p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="size-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">
+                      {attentionCount}{" "}
+                      {attentionCount === 1 ? "area needs" : "areas need"} your
+                      attention
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-amber-800">
+                      {missingItems.length > 0
+                        ? "Review the missing requirements before applying."
+                        : "Review the requirements marked as unclear before applying."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
+
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -214,8 +197,8 @@ const attentionCount = attentionItems.length;
                   Based on your current profile
                 </p>
               </div>
-              <CheckCircle2 className="size-5 text-emerald-500" />
             </div>
+
             <div className="mt-5 grid gap-3">
               {eligibilityItems.map((item) => (
                 <div
@@ -225,16 +208,14 @@ const attentionCount = attentionItems.length;
                   <div className="mt-0.5">
                     {item.status === "met" ? (
                       <CheckCircle2 className="size-4 text-emerald-500" />
-                    ) : item.status === "warn" ? (
-                      <Clock3 className="size-4 text-amber-500" />
-                    ) : (
+                    ) : item.status === "missing" ? (
                       <XCircle className="size-4 text-red-500" />
+                    ) : (
+                      <Clock3 className="size-4 text-amber-500" />
                     )}
                   </div>
-
                   <div>
                     <p className="text-sm font-medium">{item.requirement}</p>
-
                     <p className="mt-1 text-xs text-slate-500">
                       {item.explanation}
                     </p>
@@ -244,16 +225,27 @@ const attentionCount = attentionItems.length;
             </div>
           </section>
         </div>
+
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.22fr_0.78fr]">
           <section className="rounded-xl border border-slate-200 bg-white p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Your action plan</h2>
-
                 <p className="mt-1 text-sm text-slate-500">
                   Complete these steps to move your application forward.
                 </p>
               </div>
+              <ShareChecklistButton
+                title={analysis.title}
+                organization={analysis.organization}
+                match={analysis.match}
+                deadline={deadlineValue}
+                missing={missingItems.map((item) => item.requirement)}
+                items={actionItemsData.map((task) => ({
+                  title: task.title,
+                  completed: task.completed,
+                }))}
+              />
             </div>
 
             <div className="mt-6">
@@ -261,65 +253,31 @@ const attentionCount = attentionItems.length;
             </div>
           </section>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Deadline */}
-            <section className="rounded-xl border border-amber-200 bg-amber-50 p-6">
-              <div className="flex items-center gap-2 text-amber-800">
-                <CalendarDays className="size-5" />
-                <p className="text-sm font-semibold">Application deadline</p>
-              </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <DeadlineCard
+              analysisId={analysis.id}
+              title={analysis.title}
+              organization={analysis.organization}
+              deadline={deadlineValue}
+            />
 
-              <p className="mt-4 text-2xl font-bold text-amber-950">
-                {analysis.deadline
-                  ? new Date(analysis.deadline).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "No deadline"}
-              </p>
-
-              {analysis.deadline && (
-                <p className="mt-1 text-sm font-medium text-amber-700">
-                  {(() => {
-                    const deadline = new Date(analysis.deadline);
-                    const now = new Date();
-
-                    const diff = deadline.getTime() - now.getTime();
-                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-                    if (days < 0) return "Deadline passed";
-                    if (days === 0) return "Due today";
-                    if (days === 1) return "1 day remaining";
-
-                    return `${days} days remaining`;
-                  })()}
-                </p>
-              )}
-            </section>
-
-            {/* What you're missing */}
             <section className="rounded-xl border border-slate-200 bg-white p-6">
               <h2 className="font-semibold">What you&apos;re missing</h2>
 
               <div className="mt-4 grid gap-3">
-                {eligibilityItems
-                  .filter((item) => item.status === "missing")
-                  .map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-lg border border-slate-100 p-3"
-                    >
-                      <p className="text-sm font-medium">{item.requirement}</p>
+                {missingItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-slate-100 p-3"
+                  >
+                    <p className="text-sm font-medium">{item.requirement}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {item.explanation}
+                    </p>
+                  </div>
+                ))}
 
-                      <p className="mt-1 text-xs text-slate-500">
-                        {item.explanation}
-                      </p>
-                    </div>
-                  ))}
-
-                {eligibilityItems.filter((item) => item.status === "missing")
-                  .length === 0 && (
+                {missingItems.length === 0 && (
                   <p className="text-sm text-slate-500">
                     Nothing missing based on your profile.
                   </p>
@@ -328,6 +286,7 @@ const attentionCount = attentionItems.length;
             </section>
           </div>
         </div>
+
         <p className="mt-8 flex items-center gap-2 text-xs text-slate-400">
           <AlertCircle className="size-3.5" />
           AI-generated analysis may contain errors. Always verify important
