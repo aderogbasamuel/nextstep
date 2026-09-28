@@ -217,6 +217,7 @@ export default async function ResultPage({
                     <p className="mt-1 text-xs text-slate-500">
                       {item.explanation}
                     </p>
+                    <SourceQuote quote={"sourceQuote" in item && typeof item.sourceQuote === "string" ? item.sourceQuote : null} />
                   </div>
                 </div>
               ))}
@@ -272,6 +273,7 @@ export default async function ResultPage({
                     <p className="mt-1 text-xs text-slate-500">
                       {item.explanation}
                     </p>
+                    <SourceQuote quote={"sourceQuote" in item ? item.sourceQuote : null} />
                   </div>
                 ))}
 
@@ -292,5 +294,15 @@ export default async function ResultPage({
         </p>
       </div>
     </main>
+  );
+}
+
+function SourceQuote({ quote }: { quote: string | null }) {
+  if (!quote) return null;
+  return (
+    <blockquote className="mt-2 border-l-2 border-slate-200 pl-3 text-xs leading-5 text-slate-500">
+      <span className="font-medium text-slate-400">In the document: </span>
+      <span className="italic">&ldquo;{quote}&rdquo;</span>
+    </blockquote>
   );
 }

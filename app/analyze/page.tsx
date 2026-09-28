@@ -11,17 +11,45 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { DragEvent, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
+import { DragEvent, useEffect, useRef, useState } from "react";
+
+import { SAMPLE_DOCUMENTS } from "@/lib/sample-documents";
+
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+];
+const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"];
+
+const LOADING_STEPS = [
+  "Reading your document...",
+  "Extracting requirements...",
+  "Comparing with your profile...",
+  "Building your action plan...",
+];
+
 export default function AnalyzePage() {
   const [drag, setDrag] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Rotate the progress message while the analysis runs.
+  useEffect(() => {
+    if (!loading) {
+      setLoadingStep(0);
+      return;
+    }
+    const id = setInterval(
+      () => setLoadingStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1)),
+      2500,
+    );
+    return () => clearInterval(id);
+  }, [loading]);
 
   function handleFile(selectedFile: File | undefined) {
     if (!selectedFile) return;
@@ -33,13 +61,13 @@ export default function AnalyzePage() {
       return;
     }
 
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain",
-    ];
+    // Some browsers report an empty MIME type, so fall back to the extension.
+    const name = selectedFile.name.toLowerCase();
+    const okType =
+      ALLOWED_TYPES.includes(selectedFile.type) ||
+      ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext));
 
-    if (!allowedTypes.includes(selectedFile.type)) {
+    if (!okType) {
       setError("Please upload a PDF, DOCX, or TXT file.");
       return;
     }
@@ -50,10 +78,7 @@ export default function AnalyzePage() {
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDrag(false);
-
-    const droppedFile = event.dataTransfer.files?.[0];
-
-    handleFile(droppedFile);
+    handleFile(event.dataTransfer.files?.[0]);
   }
 
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
@@ -68,57 +93,69 @@ export default function AnalyzePage() {
 
   function removeFile() {
     setFile(null);
-
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }
 
- async function handleAnalyze() {
-  setError("");
+  /** sampleText skips the file and pasted text and analyzes the built-in sample instead. */
+  async function handleAnalyze(sampleText?: string) {
+    setError("");
 
-  if (!file && !text.trim()) {
-    setError("Upload a document or paste the opportunity details.");
-    return;
+    const bodyText = (sampleText ?? text).trim();
+    const bodyFile = sampleText ? null : file;
+
+    if (!bodyFile && !bodyText) {
+      setError("Upload a document or paste the opportunity details.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+
+      if (bodyFile) {
+        formData.append("file", bodyFile);
+      }
+
+      if (bodyText) {
+        formData.append("text", bodyText);
+      }
+
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis failed");
+      }
+
+      // Keep the button disabled while the browser navigates away.
+      window.location.href = `/analyses/${data.analysisId}`;
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
+      setLoading(false);
+    }
   }
 
-  setLoading(true);
+  function runSample(id: string) {
+    const sample = SAMPLE_DOCUMENTS.find((s) => s.id === id);
+    if (!sample || loading) return;
 
-  try {
-    const formData = new FormData();
-
-    if (file) {
-      formData.append("file", file);
-    }
-
-    if (text.trim()) {
-      formData.append("text", text.trim());
-    }
-
-    const response = await fetch("/api/analyze", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Analysis failed");
-    }
-
-    window.location.href = `/analyses/${data.analysisId}`;
-  } catch (error) {
-    console.error(error);
-
-    setError(
-      error instanceof Error
-        ? error.message
-        : "Something went wrong. Please try again."
-    );
-  } finally {
-    setLoading(false);
+    const sampleText = sample.build();
+    removeFile();
+    setText(sampleText); // show what is being analyzed
+    handleAnalyze(sampleText);
   }
-}
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -154,9 +191,26 @@ export default function AnalyzePage() {
             Upload a document and we&apos;ll turn its requirements into a
             personalized action plan.
           </p>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs text-slate-400">
+              No document handy? Try a fictional sample:
+            </span>
+            {SAMPLE_DOCUMENTS.map((sample) => (
+              <button
+                key={sample.id}
+                type="button"
+                onClick={() => runSample(sample.id)}
+                disabled={loading}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sample.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           {/* Upload */}
           <div
             onDragEnter={handleDragOver}
@@ -232,6 +286,15 @@ export default function AnalyzePage() {
                 >
                   Choose a different file
                 </button>
+
+                {/* Keep the input mounted so "Choose a different file" works. */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  className="hidden"
+                  onChange={(event) => handleFile(event.target.files?.[0])}
+                />
               </div>
             )}
           </div>
@@ -256,7 +319,10 @@ export default function AnalyzePage() {
 
           {/* Error */}
           {error && (
-            <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div
+              role="alert"
+              className="mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
               {error}
             </div>
           )}
@@ -265,14 +331,14 @@ export default function AnalyzePage() {
           <div className="mt-4 flex justify-end">
             <button
               type="button"
-              onClick={handleAnalyze}
+              onClick={() => handleAnalyze()}
               disabled={loading}
               className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Preparing...
+                  {LOADING_STEPS[loadingStep]}
                 </>
               ) : (
                 <>
