@@ -273,7 +273,14 @@ export default async function ResultPage({
                     <p className="mt-1 text-xs text-slate-500">
                       {item.explanation}
                     </p>
-                    <SourceQuote quote={"sourceQuote" in item ? item.sourceQuote : null} />
+                    <SourceQuote
+                      quote={
+                        "sourceQuote" in item &&
+                        typeof item.sourceQuote === "string"
+                          ? item.sourceQuote
+                          : null
+                      }
+                    />
                   </div>
                 ))}
 
