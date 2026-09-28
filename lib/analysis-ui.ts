@@ -65,3 +65,12 @@ export const deadlineToneClass: Record<DeadlineTone, string> = {
   soon: "text-amber-600",
   ok: "text-slate-500",
 };
+
+export type StatusBucket = "eligible" | "needs_review" | "not_eligible";
+
+/** Unknown or legacy statuses count as "needs review", on every page. */
+export function statusBucket(status: string): StatusBucket {
+  return status === "eligible" || status === "not_eligible"
+    ? status
+    : "needs_review";
+}

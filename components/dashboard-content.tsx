@@ -8,14 +8,22 @@ import {
   Clock3,
   FileText,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { AppShell, PageHeader, StatusBadge } from "@/components/app-shell";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { AppShell, PageHeader } from "@/components/app-shell";
+import {
+  deadlineInfo,
+  deadlineToneClass,
+  formatType,
+  statusBucket,
+  statusMeta,
+} from "@/lib/analysis-ui";
 
 type Analysis = {
   id: number;
-  userId: string;
   title: string;
   type: string;
   organization: string | null;
@@ -25,184 +33,225 @@ type Analysis = {
   createdAt: string;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function greetingFor(hour: number) {
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function timeAgo(date: string) {
+  const created = new Date(date);
+  const diff = Date.now() - created.getTime();
+
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / DAY_MS);
+
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+
+  return created.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function DashboardContent({ name }: { name: string }) {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  // Rendered on the client only, so the greeting follows the viewer's local time.
+  const [greeting, setGreeting] = useState("Welcome back");
 
   useEffect(() => {
-    async function fetchAnalyses() {
-      try {
-        const response = await fetch("/api/analyses");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch analyses");
-        }
-
-        const data = await response.json();
-        setAnalyses(data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard analyses:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAnalyses();
+    setGreeting(greetingFor(new Date().getHours()));
   }, []);
 
-  const stats = useMemo(() => {
-    const now = new Date();
+  const load = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setLoading(true);
+      setError("");
 
-    const next30Days = new Date();
-    next30Days.setDate(now.getDate() + 30);
+      const response = await fetch("/api/analyses", { signal });
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
 
-    const eligible = analyses.filter(
-      (analysis) => analysis.status === "eligible",
-    ).length;
+      const data: unknown = await response.json();
+      if (!Array.isArray(data)) throw new Error("Unexpected response shape");
 
-    const needsReview = analyses.filter(
-      (analysis) => analysis.status === "needs_review",
-    ).length;
+      setAnalyses(data as Analysis[]);
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      console.error("Failed to fetch dashboard analyses:", err);
+      setError("We couldn't load your analyses.");
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, []);
 
-    const upcomingDeadlines = analyses.filter((analysis) => {
-      if (!analysis.deadline) return false;
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
-      const deadline = new Date(analysis.deadline);
-
-      return deadline >= now && deadline <= next30Days;
-    }).length;
-
-    return {
-      total: analyses.length,
-      eligible,
-      needsReview,
-      upcomingDeadlines,
-    };
-  }, [analyses]);
-
-  const recent = useMemo(() => {
-    return [...analyses]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  // Upcoming deadlines within 30 days, skipping opportunities the user isn't eligible for.
+  const upcoming = useMemo(() => {
+    const now = Date.now();
+    return analyses
+      .filter((a) => statusBucket(a.status) !== "not_eligible")
+      .map((a) => ({ analysis: a, info: deadlineInfo(a.deadline, now) }))
+      .filter(
+        (x) =>
+          x.info.time !== null &&
+          x.info.tone !== "none" &&
+          x.info.tone !== "passed" &&
+          x.info.time - now <= 30 * DAY_MS,
       )
-      .slice(0, 5);
+      .sort((a, b) => (a.info.time ?? 0) - (b.info.time ?? 0));
   }, [analyses]);
 
-  function getStatusTone(status: string): "green" | "amber" | "blue" {
-    switch (status) {
-      case "eligible":
-        return "green";
-
-      case "not_eligible":
-        return "amber";
-
-      case "needs_review":
-      default:
-        return "blue";
+  const stats = useMemo(() => {
+    let eligible = 0;
+    let needsReview = 0;
+    for (const a of analyses) {
+      const bucket = statusBucket(a.status);
+      if (bucket === "eligible") eligible += 1;
+      else if (bucket === "needs_review") needsReview += 1;
     }
-  }
+    return { total: analyses.length, eligible, needsReview };
+  }, [analyses]);
 
-  function formatStatus(status: string) {
-    switch (status) {
-      case "eligible":
-        return "Eligible";
+  const closingThisWeek = upcoming.filter(
+    (x) => x.info.tone === "urgent" || x.info.tone === "soon",
+  ).length;
 
-      case "not_eligible":
-        return "Not eligible";
+  const recent = useMemo(
+    () =>
+      [...analyses]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 5),
+    [analyses],
+  );
 
-      case "needs_review":
-        return "Needs review";
+  const firstName = name.trim().split(" ")[0] || "there";
+  const showValues = !loading && !error;
 
-      default:
-        return status;
-    }
-  }
-
-  function formatType(type: string) {
-    return type
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  function formatDate(date: string) {
-    const created = new Date(date);
-    const now = new Date();
-
-    const diff = now.getTime() - created.getTime();
-
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
-
-    return created.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
-
-  const statCards: [string, number, LucideIcon, string][] = [
-    ["Analyses", stats.total, FileText, "All opportunities"],
-    [
-      "Eligible",
-      stats.eligible,
-      CheckCircle2,
-      stats.total > 0
-        ? `${Math.round((stats.eligible / stats.total) * 100)}% of analyses`
-        : "No analyses yet",
-    ],
-    ["Needs review", stats.needsReview, Clock3, "Worth a closer look"],
-    ["Deadlines", stats.upcomingDeadlines, CalendarDays, "Next 30 days"],
+  const statCards: {
+    label: string;
+    value: number;
+    Icon: LucideIcon;
+    detail: string;
+  }[] = [
+    { label: "Analyses", value: stats.total, Icon: FileText, detail: "All opportunities" },
+    {
+      label: "Eligible",
+      value: stats.eligible,
+      Icon: CheckCircle2,
+      detail:
+        stats.total > 0
+          ? `${Math.round((stats.eligible / stats.total) * 100)}% of analyses`
+          : "No analyses yet",
+    },
+    { label: "Needs review", value: stats.needsReview, Icon: Clock3, detail: "Worth a closer look" },
+    { label: "Deadlines", value: upcoming.length, Icon: CalendarDays, detail: "Next 30 days" },
   ];
 
   return (
     <AppShell>
       <main className="mx-auto max-w-7xl px-5 py-9 lg:px-10 lg:py-11">
-        <PageHeader
-          eyebrow="Your workspace"
-          title={`Good morning, ${name.split(" ")[0]}`}
-          description="Here's what needs your attention today."
-        />
+        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+          <PageHeader
+            eyebrow="Your workspace"
+            title={`${greeting}, ${firstName}`}
+            description={
+              showValues && closingThisWeek > 0
+                ? `${closingThisWeek} ${closingThisWeek === 1 ? "deadline is" : "deadlines are"} coming up in the next 7 days.`
+                : "Here's where your applications stand."
+            }
+          />
+
+          <Link
+            href="/analyze"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            <Plus className="size-4" />
+            Analyze document
+          </Link>
+        </div>
 
         {/* Stats */}
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {statCards.map(([label, value, Icon, detail]) => (
+          {statCards.map(({ label, value, Icon, detail }) => (
             <div
               key={label}
               className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-500">
-                  {label}
-                </p>
-
+                <p className="text-sm font-medium text-slate-500">{label}</p>
                 <span className="grid size-8 place-items-center rounded-lg bg-slate-50 text-slate-500">
                   <Icon className="size-4" />
                 </span>
               </div>
 
-              <p className="mt-5 text-3xl font-bold tracking-tight">
-                {loading ? "—" : value}
+              <p className="mt-5 text-3xl font-bold tracking-tight tabular-nums">
+                {showValues ? value : "—"}
               </p>
-
               <p className="mt-1 text-xs text-slate-400">{detail}</p>
             </div>
           ))}
         </div>
+
+        {/* Coming up */}
+        {showValues && upcoming.length > 0 && (
+          <section className="mt-8 rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-5 py-5">
+              <h2 className="font-semibold">Coming up</h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Deadlines in the next 30 days, soonest first.
+              </p>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {upcoming.slice(0, 3).map(({ analysis, info }) => (
+                <Link
+                  key={analysis.id}
+                  href={`/analyses/${analysis.id}`}
+                  className="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">
+                      {analysis.title}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-slate-400">
+                      {analysis.organization ? `${analysis.organization} · ` : ""}
+                      {info.date}
+                    </p>
+                  </div>
+
+                  <span className={`shrink-0 text-sm font-semibold ${deadlineToneClass[info.tone]}`}>
+                    {info.label}
+                  </span>
+                  <ArrowUpRight className="size-4 shrink-0 text-slate-400" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Recent analyses */}
         <section className="mt-8 rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5">
             <div>
               <h2 className="font-semibold">Recent analyses</h2>
-
               <p className="mt-1 text-xs text-slate-400">
                 Your latest opportunity reviews.
               </p>
@@ -217,8 +266,28 @@ export function DashboardContent({ name }: { name: string }) {
           </div>
 
           {loading ? (
-            <div className="px-5 py-10 text-center">
-              <p className="text-sm text-slate-500">Loading your analyses...</p>
+            <div aria-busy="true" aria-label="Loading your analyses" className="divide-y divide-slate-100">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <div className="size-10 rounded-lg bg-slate-100 motion-safe:animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-1/3 rounded bg-slate-100 motion-safe:animate-pulse" />
+                    <div className="h-3 w-1/5 rounded bg-slate-100 motion-safe:animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div role="alert" className="px-5 py-10 text-center">
+              <p className="text-sm text-red-700">{error}</p>
+              <button
+                type="button"
+                onClick={() => load()}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <RefreshCw className="size-4" />
+                Try again
+              </button>
             </div>
           ) : recent.length === 0 ? (
             <div className="px-5 py-12 text-center">
@@ -229,9 +298,8 @@ export function DashboardContent({ name }: { name: string }) {
               <p className="mt-4 text-sm font-semibold text-slate-900">
                 No analyses yet
               </p>
-
               <p className="mt-1 text-sm text-slate-500">
-                Analyze an opportunity to see it here.
+                Analyze a job, scholarship or grant to see it here.
               </p>
 
               <Link
@@ -244,37 +312,41 @@ export function DashboardContent({ name }: { name: string }) {
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {recent.map((item) => (
-                <Link
-                  href={`/analyses/${item.id}`}
-                  key={item.id}
-                  className="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50"
-                >
-                  <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                    <FileText className="size-4" />
-                  </span>
+              {recent.map((item) => {
+                const status = statusMeta(item.status);
+                return (
+                  <Link
+                    href={`/analyses/${item.id}`}
+                    key={item.id}
+                    className="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
+                      <FileText className="size-4" />
+                    </span>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-900">
-                      {item.title}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {item.title}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {formatType(item.type)} · {timeAgo(item.createdAt)}
+                      </p>
+                    </div>
 
-                    <p className="mt-1 text-xs text-slate-400">
-                      {formatType(item.type)} · {formatDate(item.createdAt)}
-                    </p>
-                  </div>
+                    <span
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${status.badge}`}
+                    >
+                      {status.label}
+                    </span>
 
-                  <StatusBadge tone={getStatusTone(item.status)}>
-                    {formatStatus(item.status)}
-                  </StatusBadge>
+                    <span className="hidden w-10 text-right text-sm font-bold tabular-nums sm:block">
+                      {item.match}%
+                    </span>
 
-                  <span className="hidden text-sm font-bold sm:block">
-                    {item.match}%
-                  </span>
-
-                  <ArrowUpRight className="size-4 shrink-0 text-slate-400" />
-                </Link>
-              ))}
+                    <ArrowUpRight className="size-4 shrink-0 text-slate-400" />
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>
