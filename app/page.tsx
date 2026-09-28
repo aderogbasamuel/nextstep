@@ -113,7 +113,7 @@ const useCases = [
 function Logo() {
   return (
     <Link href="/" className="">
-      <NextStepLogo tagline className="h-18 w-auto" />
+      <NextStepLogo tagline className="h-12 w-auto" />
     </Link>
   );
 }
