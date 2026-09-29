@@ -12,7 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { DragEvent, useEffect, useRef, useState } from "react";
-
+import NextStepLogo from "@/components/ui/NextStepLogo";
 import { SAMPLE_DOCUMENTS } from "@/lib/sample-documents";
 
 const ALLOWED_TYPES = [
@@ -159,10 +159,7 @@ export default function AnalyzePage() {
       <header className="border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 font-bold tracking-tight text-slate-900">
-            <span className="grid size-8 place-items-center rounded-lg bg-slate-900 text-white">
-              <ArrowRight className="size-4" />
-            </span>
-            NextStep
+            <NextStepLogo tagline className="h-12 w-auto" />
           </Link>
 
           <Link

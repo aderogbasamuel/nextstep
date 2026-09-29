@@ -15,91 +15,96 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [pending, setPending] = useState(false);
   const isSignup = mode === "signup";
 
- async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  setPending(true);
-  setError("");
+    setPending(true);
+    setError("");
 
-  try {
-    if (isSignup) {
-      const result = await authClient.signUp.email({
-        name,
+    try {
+      if (isSignup) {
+        const result = await authClient.signUp.email({
+          name,
+          email,
+          password,
+        });
+
+        if (result.error) {
+          setError(
+            "We could not create your account. Check your details and try again."
+          );
+          return;
+        }
+
+        router.push("/profile");
+        router.refresh();
+        return;
+      }
+
+      const result = await authClient.signIn.email({
         email,
         password,
       });
 
       if (result.error) {
         setError(
-          "We could not create your account. Check your details and try again."
+          "We could not sign you in. Check your email and password and try again."
         );
         return;
       }
 
-      router.push("/profile");
+      const pendingAnalysis = sessionStorage.getItem("pendingAnalysis");
+
+      if (pendingAnalysis) {
+        router.push("/analyze?continue=true");
+      } else {
+        router.push("/dashboard");
+      }
+
       router.refresh();
-      return;
+    } finally {
+      setPending(false);
     }
-
-    const result = await authClient.signIn.email({
-      email,
-      password,
-    });
-
-    if (result.error) {
-      setError(
-        "We could not sign you in. Check your email and password and try again."
-      );
-      return;
-    }
-
-    const pendingAnalysis = sessionStorage.getItem("pendingAnalysis");
-
-if (pendingAnalysis) {
-  router.push("/analyze?continue=true");
-} else {
-  router.push("/dashboard");
-}
-
-router.refresh();
-  } finally {
-    setPending(false);
   }
-}
+
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-50 px-5">
+    <main className="grid min-h-screen place-items-center bg-slate-50 px-4 py-12 font-sans antialiased text-slate-900">
       <div className="w-full max-w-md">
         <Link
           href="/"
-          className="mx-auto flex w-fit items-center gap-2 font-semibold"
+          className="mx-auto flex w-fit items-center gap-2 font-bold tracking-tight text-slate-900"
         >
           <span className="grid size-8 place-items-center rounded-lg bg-slate-900 text-white">
             <ArrowRight className="size-4" />
           </span>
           NextStep
         </Link>
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm text-black">
-          <h1 className="text-2xl font-bold">
+
+        <div className="mt-8 rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
             {isSignup ? "Create your account" : "Welcome back"}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
             {isSignup
               ? "Start finding opportunities that fit your next step."
               : "Sign in to continue your next step."}
           </p>
-          <form onSubmit={handleSubmit} className="mt-7 grid gap-4">
+
+          <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
             {isSignup && (
-              <label className="grid gap-2 text-sm font-medium">
+              <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
                 Full name
                 <input
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
+                  placeholder="Jane Doe"
+                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-normal text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
                 />
               </label>
             )}
-            <label className="grid gap-2 text-sm font-medium">
+
+            <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
               Email
               <input
                 required
@@ -107,10 +112,11 @@ router.refresh();
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
-                className="rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
+                className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-normal text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium">
+
+            <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
               Password
               <input
                 required
@@ -119,36 +125,43 @@ router.refresh();
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="At least 8 characters"
-                className="rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
+                className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-normal text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
               />
             </label>
+
             {error && (
-              <p role="alert" className="text-sm text-rose-600">
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50/80 px-3.5 py-2.5 text-xs font-medium text-red-700"
+              >
                 {error}
-              </p>
+              </div>
             )}
+
             <button
               disabled={pending}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="mt-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending && <Loader2 className="size-4 animate-spin" />}
               {isSignup ? "Create account" : "Sign in"}
             </button>
           </form>
-          <p className="mt-6 text-center text-sm text-slate-500">
+
+          <p className="mt-6 text-center text-xs text-slate-500">
             {isSignup
               ? "Already have an account?"
               : "Don&apos;t have an account?"}{" "}
             <Link
               href={isSignup ? "/login" : "/signup"}
-              className="font-semibold text-blue-600"
+              className="font-semibold text-blue-600 hover:underline"
             >
               {isSignup ? "Sign in" : "Create one"}
             </Link>
           </p>
         </div>
-        <p className="mt-5 flex justify-center gap-2 text-xs text-slate-400">
-          <ShieldCheck className="size-4" />
+
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400">
+          <ShieldCheck className="size-4 shrink-0" />
           Your information is kept private.
         </p>
       </div>
