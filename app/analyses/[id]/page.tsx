@@ -257,7 +257,7 @@ export default async function ResultPage({
         {/* Action Plan & Sidebar */}
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className=" flex flex-col sm:flex-row  items-start justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Your Action Plan</h2>
                 <p className="mt-0.5 text-xs text-slate-500">

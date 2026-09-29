@@ -159,7 +159,7 @@ export default function AnalyzePage() {
       <header className="border-b border-slate-200/80 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 font-bold tracking-tight text-slate-900">
-            <NextStepLogo tagline className="h-12 w-auto" />
+            <NextStepLogo tagline className="h-8 w-auto" />
           </Link>
 
           <Link
