@@ -120,44 +120,55 @@ function Logo() {
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-slate-950 text-white pt-24 pb-20 lg:pt-32 lg:pb-32">
-      {/* Background Gradients & Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/2 blur-3xl lg:top-[-10rem]">
-        <div
-          className="aspect-[1155/678] w-[72.1875rem] bg-gradient-to-tr from-[#3b82f6] to-[#60a5fa] opacity-20"
-          style={{
-            clipPath:
-              "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-          }}
-        />
-      </div>
+    <section className="relative overflow-hidden bg-white pt-24 pb-20 text-slate-950 lg:pt-32 lg:pb-28">
+      {/* Subtle background effect */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 75% 20%, rgba(59,130,246,0.10), transparent 28%),
+            radial-gradient(circle at 15% 80%, rgba(59,130,246,0.05), transparent 24%),
+            linear-gradient(rgba(15,23,42,0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15,23,42,0.035) 1px, transparent 1px)
+          `,
+          backgroundSize: "auto, auto, 48px 48px, 48px 48px",
+          maskImage:
+            "linear-gradient(to bottom, black 0%, black 70%, transparent 100%)",
+        }}
+      />
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 lg:grid-cols-[1fr_0.95fr] lg:gap-16 lg:px-8">
-        {/* Left Column: Hero Copy */}
+      {/* Soft blue glow */}
+      <div className="pointer-events-none absolute right-[-12rem] top-[-10rem] h-[32rem] w-[32rem] rounded-full bg-blue-500/10 blur-3xl" />
+
+      <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-5 lg:grid-cols-[1fr_0.9fr] lg:gap-20 lg:px-8">
+        {/* Left Column */}
         <div>
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-400 backdrop-blur-md">
-            <Sparkles className="size-3.5 animate-pulse text-blue-400" />
-            <span>AI-Powered Requirement Intelligence</span>
+          {/* Small label */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+            <span className="size-1.5 rounded-full bg-blue-600" />
+            AI-powered opportunity analysis
           </div>
 
-          <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-6xl">
-            Know what you qualify for.{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
-              Own what comes next.
+          {/* Heading */}
+          <h1 className="max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-slate-950 sm:text-6xl lg:text-[4.25rem]">
+            Know what you qualify for.
+            <span className="block text-blue-600">
+              Know what to do next.
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 sm:text-lg sm:leading-8">
-            Stop guessing your eligibility. Upload complex opportunity documents
-            and get instant match analysis, verified requirements, and a
-            step-by-step roadmap to victory.
+          {/* Description */}
+          <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+            Upload an opportunity document and turn complicated requirements
+            into clear eligibility insights, personalized action steps, and a
+            checklist you can actually follow.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center">
+          {/* Actions */}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               href="/analyze"
-              className="group relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_0_25px_rgba(37,99,235,0.4)] transition-all duration-200 hover:bg-blue-500 hover:shadow-[0_0_35px_rgba(37,99,235,0.6)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              className="group inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(37,99,235,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-[0_12px_30px_rgba(37,99,235,0.28)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
               Analyze a Document
               <ArrowRight className="ml-2 size-4 transition-transform duration-200 group-hover:translate-x-1" />
@@ -165,32 +176,38 @@ export function HeroSection() {
 
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/80 px-6 py-3.5 text-sm font-semibold text-slate-300 backdrop-blur-sm transition-colors hover:border-slate-700 hover:bg-slate-800 hover:text-white"
+              className="inline-flex items-center justify-center rounded-lg px-5 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-950"
             >
-              See How It Works
+              See how it works
             </a>
           </div>
 
           {/* Proof points */}
-          <div className="mt-10 flex flex-wrap items-center gap-6 border-t border-slate-800/80 pt-6 text-xs text-slate-400">
+          <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 border-t border-slate-200 pt-6 text-xs font-medium text-slate-500">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-emerald-400" />
-              <span>Instant Eligibility Scoring</span>
+              <ShieldCheck className="size-4 text-blue-600" />
+              Instant eligibility insights
             </div>
+
             <div className="flex items-center gap-2">
-              <Zap className="size-4 text-amber-400" />
-              <span>Automated Checklist</span>
+              <Zap className="size-4 text-blue-600" />
+              Personalized action plan
             </div>
           </div>
         </div>
 
-        {/* Right Column: Interactive Mockup Card */}
-        <ProductPreview />
+        {/* Right Column */}
+        <div className="relative">
+          {/* Decorative lines behind preview */}
+          <div className="absolute -inset-6 rounded-[2rem] border border-slate-200/70" />
+          <div className="absolute -inset-12 rounded-[3rem] border border-slate-100" />
+
+          <ProductPreview />
+        </div>
       </div>
     </section>
   );
 }
-
 function ProductPreview() {
   return (
     <div className="relative mx-auto w-full max-w-[520px] lg:mr-0">
