@@ -36,6 +36,8 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
+  // True only when the request itself failed, so we can tell the user to retry.
+  const [canRetry, setCanRetry] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Rotate the progress message while the analysis runs.
@@ -55,6 +57,7 @@ export default function AnalyzePage() {
     if (!selectedFile) return;
 
     setError("");
+    setCanRetry(false);
 
     if (selectedFile.size > 10 * 1024 * 1024) {
       setError("File must be smaller than 10MB.");
@@ -99,6 +102,7 @@ export default function AnalyzePage() {
 
   async function handleAnalyze(sampleText?: string) {
     setError("");
+    setCanRetry(false);
 
     const bodyText = (sampleText ?? text).trim();
     const bodyFile = sampleText ? null : file;
@@ -126,20 +130,33 @@ export default function AnalyzePage() {
         body: formData,
       });
 
-      const data = await response.json();
+      // A server timeout can return a page that isn't JSON, so don't assume it parses.
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.error || "Analysis failed");
+        throw new Error(data?.error || "Analysis failed");
+      }
+
+      if (!data?.analysisId) {
+        throw new Error("Analysis failed");
       }
 
       window.location.href = `/analyses/${data.analysisId}`;
     } catch (err) {
       console.error(err);
+
+      const raw = err instanceof Error ? err.message : "";
+      // Hide raw technical errors (for example JSON pasted from the AI service).
+      const readable = raw && raw.length < 160 && !raw.includes("{");
+
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.",
+        err instanceof TypeError
+          ? "Couldn't reach the server. Check your internet connection."
+          : readable
+            ? raw
+            : "The AI service is busy or didn't respond.",
       );
+      setCanRetry(true);
       setLoading(false);
     }
   }
@@ -309,6 +326,7 @@ export default function AnalyzePage() {
             onChange={(event) => {
               setText(event.target.value);
               setError("");
+              setCanRetry(false);
             }}
             className="min-h-32 w-full resize-none rounded-xl border border-slate-200 bg-white p-3.5 text-sm outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 transition-all"
             placeholder="Paste the job description, scholarship requirements, application guide, or process instructions..."
@@ -320,7 +338,14 @@ export default function AnalyzePage() {
               role="alert"
               className="mt-3 rounded-lg border border-red-200 bg-red-50/80 px-3.5 py-2.5 text-xs font-medium text-red-700"
             >
-              {error}
+              <p>{error}</p>
+              {canRetry && (
+                <p className="mt-1 font-normal text-red-600">
+                  This is usually temporary, as the AI service can get busy.
+                  Please wait a few seconds and press the button again. Your
+                  document is still here.
+                </p>
+              )}
             </div>
           )}
 
