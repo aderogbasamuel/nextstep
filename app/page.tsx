@@ -209,116 +209,183 @@ export function HeroSection() {
   );
 }
 function ProductPreview() {
-  return (
-    <div className="relative mx-auto w-full max-w-[520px] lg:mr-0">
-      {/* Background Glow */}
-      <div className="absolute -inset-1 rounded-[32px] bg-gradient-to-r from-blue-600 to-cyan-500 opacity-30 blur-2xl transition duration-1000 group-hover:opacity-100" />
+  const requirements = [
+    "Distributed Systems Architecture",
+    "TypeScript & Node.js",
+    "Kubernetes & Docker",
+  ];
 
-      {/* Main Glass Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 text-slate-100 shadow-2xl backdrop-blur-xl">
-        {/* Card Header */}
-        <div className="flex items-center justify-between border-b border-slate-800/80 px-5 py-4 bg-slate-900/50">
+  return (
+    <div className="relative mx-auto w-full max-w-[540px] lg:mr-0">
+      {/* Subtle background shape */}
+      <div className="absolute -inset-5 rounded-[2rem] bg-blue-50/70 blur-2xl" />
+
+      {/* Main Preview */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-950 shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-lg bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20">
-              <FileText className="size-4" />
+            <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+              <FileText className="size-5" />
             </div>
+
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Document Analyzed
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                Document analyzed
               </p>
-              <p className="text-sm font-semibold text-white">
+
+              <p className="mt-0.5 text-sm font-semibold text-slate-900">
                 Senior Systems Engineer
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 ring-1 ring-emerald-500/20">
-            <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+
+          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
             Eligible
-          </span>
+          </div>
         </div>
 
-        {/* Score & Requirements Section */}
-        <div className="grid gap-5 p-5 sm:grid-cols-[150px_1fr]">
-          <div className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-950/50 p-4 text-center">
+        {/* Main Analysis */}
+        <div className="grid gap-5 p-5 sm:grid-cols-[155px_1fr] sm:p-6">
+          {/* Match Score */}
+          <div className="flex flex-col items-center justify-center rounded-xl border border-slate-100 bg-slate-50/70 p-5">
             <div
-              className="relative grid size-24 place-items-center rounded-full"
+              className="relative grid size-[92px] place-items-center rounded-full"
               style={{
-                background: "conic-gradient(#3b82f6 0 88%, #1e293b 88% 100%)",
+                background:
+                  "conic-gradient(#2563eb 0 88%, #dbeafe 88% 100%)",
               }}
             >
-              <div className="grid size-[78px] place-items-center rounded-full bg-slate-900">
-                <span className="text-2xl font-extrabold text-white">88%</span>
+              <div className="grid size-[76px] place-items-center rounded-full bg-white">
+                <span className="text-2xl font-bold tracking-tight text-slate-900">
+                  88%
+                </span>
               </div>
             </div>
-            <p className="mt-3 text-xs font-bold text-slate-200">Match Score</p>
+
+            <p className="mt-3 text-xs font-semibold text-slate-800">
+              Match score
+            </p>
+
             <p className="mt-0.5 text-[10px] text-slate-400">
-              High Probability
+              Strong match
             </p>
           </div>
 
-          <div>
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Key Requirements
-            </p>
-            <div className="space-y-2">
-              {[
-                "Distributed Systems Architecture",
-                "TypeScript & Node.js",
-                "Kubernetes & Docker",
-              ].map((item) => (
+          {/* Requirements */}
+          <div className="min-w-0">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                Key requirements
+              </p>
+
+              <span className="text-[10px] font-medium text-slate-400">
+                3 matched
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {requirements.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 text-xs font-medium text-slate-300"
+                  className="flex items-center gap-2.5 text-xs font-medium text-slate-700"
                 >
-                  <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
+                  <div className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-50">
+                    <CheckCircle2 className="size-3.5 text-emerald-600" />
+                  </div>
+
                   <span className="truncate">{item}</span>
                 </div>
               ))}
-              <div className="flex items-center gap-2 text-xs font-medium text-amber-400">
-                <Clock className="size-4 shrink-0" />
-                <span>5+ Years Experience (Needs Review)</span>
+
+              <div className="flex items-center gap-2.5 text-xs font-medium text-amber-700">
+                <div className="grid size-5 shrink-0 place-items-center rounded-full bg-amber-50">
+                  <Clock className="size-3.5 text-amber-600" />
+                </div>
+
+                <span className="truncate">
+                  5+ Years Experience — Needs review
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Plan Progress */}
-        <div className="border-t border-slate-800/80 bg-slate-950/30 px-5 py-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-200">
-              Action Plan Progress
-            </p>
-            <span className="text-[11px] font-medium text-blue-400">
-              4 of 5 Complete
+        {/* Action Plan */}
+        <div className="border-t border-slate-100 px-5 py-5 sm:px-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-900">
+                Your action plan
+              </p>
+
+              <p className="mt-0.5 text-[10px] text-slate-400">
+                Complete these before applying
+              </p>
+            </div>
+
+            <span className="text-[11px] font-semibold text-blue-600">
+              4 / 5 complete
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-            <div className="h-full w-4/5 rounded-full bg-gradient-to-r from-blue-500 to-sky-400" />
+
+          {/* Progress */}
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full w-4/5 rounded-full bg-blue-600" />
           </div>
-          <div className="mt-3.5 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Check className="size-3.5 text-emerald-400" /> Resume Tailored
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="size-3.5 text-emerald-400" /> Cover Letter Ready
-            </span>
+
+          {/* Checklist */}
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+            {[
+              "Resume tailored",
+              "Skills reviewed",
+              "Cover letter ready",
+              "Application submitted",
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-2 text-[11px] font-medium text-slate-600"
+              >
+                <Check className="size-3.5 shrink-0 text-emerald-500" />
+                <span>{item}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Deadline Footer */}
-        <div className="flex items-center justify-between border-t border-slate-800/80 bg-amber-500/10 px-5 py-3">
-          <span className="flex items-center gap-2 text-xs font-medium text-amber-300">
+        {/* Deadline */}
+        <div className="flex items-center justify-between border-t border-amber-100 bg-amber-50/70 px-5 py-3.5 sm:px-6">
+          <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
             <Clock className="size-3.5" />
-            Closing Window
+            Closing window
+          </div>
+
+          <span className="text-xs font-bold text-amber-800">
+            4 days remaining
           </span>
-          <span className="text-xs font-bold text-amber-200">
-            4 Days Remaining
-          </span>
+        </div>
+      </div>
+
+      {/* Small floating status */}
+      <div className="absolute -right-3 -top-4 hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg sm:flex">
+        <div className="grid size-7 place-items-center rounded-lg bg-emerald-50">
+          <CheckCircle2 className="size-4 text-emerald-600" />
+        </div>
+
+        <div>
+          <p className="text-[9px] font-medium uppercase tracking-wider text-slate-400">
+            Analysis complete
+          </p>
+          <p className="text-[11px] font-semibold text-slate-800">
+            Ready to act
+          </p>
         </div>
       </div>
     </div>
   );
 }
+
 
 export default function Page() {
   const [mobileOpen, setMobileOpen] = useState(false);
