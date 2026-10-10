@@ -44,7 +44,7 @@ const steps = [
     number: "03",
     icon: ClipboardCheck,
     title: "Profile Match",
-    body: "Compare requirement criteria directly against your experience and qualifications.",
+    body: "yeah Compare requirement criteria directly against your experience and qualifications.",
   },
   {
     number: "04",
